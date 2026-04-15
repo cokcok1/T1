@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCCEFC 小組簡報助手 (V1.0)</title>
+    
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
+
+    <style>
+        :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; }
+        body { font-family: 'Microsoft JhengHei', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        h1 { color: var(--primary); font-size: 1.5rem; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin-top: 15px; font-size: 0.9rem; color: #666; min-height: 1.2em; }
+        .footer { margin-top: 20px; font-size: 0.7rem; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div style="color: var(--accent); font-weight: bold; margin-bottom: 5px;">SCCEFC 南卡堂</div>
+    <h1>小組簡報一鍵生成</h1>
+    
+    <input type="text" id="sermonUrl" placeholder="貼上教會講道網址 (如: .../sermon-upload/4122026-)" 
+           value="https://www.sccefc.ca/cn/sermon-upload/4122026-">
+    
+    <button id="mainBtn" onclick="startWorkflow()">開始製作 PowerPoint</button>
+    
+    <div id="status">準備就緒</div>
+    <div class="footer">沿用 bible-ai2 Cloudflare 安全技術</div>
+</div>
+
+<script>
+    // --- 直接沿用你 bible-ai2 的 API 設置 ---
+    const GEMINI_API_URL = 'https://little-thunder-4b7b.imsklam1.workers.dev';
+    
+    async function startWorkflow() {
+        const url = document.getElementById('sermonUrl').value;
+        const btn = document.getElementById('mainBtn');
+        const status = document.getElementById('status');
+        
+        if (!url) { alert("請輸入網址"); return; }
+
+        try {
+            btn.disabled = true;
+            
+            // 步驟 1: 抓取網頁內容 (使用 AllOrigins Proxy 解決跨域問題)
+            status.innerText = "🔍 正在讀取教會網頁...";
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            const webRes = await fetch(proxyUrl);
+            const webData = await webRes.json();
+            const html = webData.contents;
+            
+            // 簡單解析網頁文字
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const pageText = doc.body.innerText; // 獲取全網頁文字交給 AI 處理最準確
+
+            // 步驟 2: 呼叫你的 Cloudflare Worker (傳送簡報專用 Prompt)
+            status.innerText = "🤖 AI 正在研讀經文並準備背景資料...";
+            
+            const pptPrompt = `你現在是聖經研究專家。我會提供一段教會講道網頁的文字。
+請幫我完成以下任務：
+1. 從文字中提取出「講題」、「經文」、「講道大綱」、「小組進深分享問題」。
+2. 針對「經文」部分，提供深度【歷史背景】和【經文解釋】。
+
+請嚴格按照以下 JSON 格式回覆，不要有額外文字：
+{
+  "title": "提取的講題",
+  "scripture": "提取的經文",
+  "outline": "提取的大綱",
+  "questions": ["問題1", "問題2", "問題3"],
+  "aiBackground": "歷史背景資料",
+  "aiExegesis": "經文解釋資料"
+}
+
+以下是網頁內容：
+${pageText}`;
+
+            const aiRes = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: pptPrompt }] }] })
+            });
+            
+            const aiData = await aiRes.json();
+            const rawContent = aiData.candidates[0].content.parts[0].text;
+            // 處理 AI 可能回傳的 Markdown 標籤
+            const cleanJson = rawContent.replace(/```json|```/g, '').trim();
+            const finalData = JSON.parse(cleanJson);
+
+            // 步驟 3: 生成 PPT
+            status.innerText = "🎨 正在排版專業簡報...";
+            createPPT(finalData);
+
+            status.innerText = "✅ PPT 已成功生成並下載！";
+        } catch (e) {
+            console.error(e);
+            status.innerText = "❌ 發生錯誤，請檢查網址或 API 連線";
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function createPPT(data) {
+        let pptx = new PptxGenJS();
+        const MAIN_BLUE = "1A4A7C";
+        const FONT = "Microsoft JhengHei";
+
+        // Slide 1: 封面
+        let s1 = pptx.addSlide();
+        s1.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.7, fill: { color: MAIN_BLUE } });
+        s1.addText(data.title, { x: 0, y: 2.5, w: '100%', align: 'center', fontSize: 40, bold: true, color: MAIN_BLUE, fontFace: FONT });
+        s1.addText(data.scripture, { x: 0, y: 3.5, w: '100%', align: 'center', fontSize: 24, italic: true, color: "666666", fontFace: FONT });
+
+        // Slide 2: 講道大綱
+        let s2 = pptx.addSlide();
+        addHeader(s2, "講道大綱", MAIN_BLUE, FONT);
+        s2.addText(data.outline, { x: 0.8, y: 1.5, w: 8.5, fontSize: 20, fontFace: FONT, lineSpacing: 30 });
+
+        // Slide 3: 歷史背景 (AI 生成)
+        let s3 = pptx.addSlide();
+        addHeader(s3, "經文歷史背景", MAIN_BLUE, FONT);
+        s3.addText(data.aiBackground, { x: 0.8, y: 1.3, w: 8.5, h: 4, fontSize: 16, fontFace: FONT, bullet: true });
+
+        // Slide 4: 經文解釋 (AI 生成)
+        let s4 = pptx.addSlide();
+        addHeader(s4, "經文深度解析", MAIN_BLUE, FONT);
+        s4.addText(data.aiExegesis, { x: 0.8, y: 1.3, w: 8.5, h: 4, fontSize: 16, fontFace: FONT, bullet: true });
+
+        // Slide 5+: 小組問題 (每題一頁)
+        data.questions.forEach((q, i) => {
+            let s = pptx.addSlide();
+            addHeader(s, `小組討論 (${i+1})`, "C5A059", FONT);
+            s.addShape(pptx.ShapeType.roundRect, { x: 1, y: 2, w: 8, h: 2.5, fill: { color: "F1F1F1" } });
+            s.addText(q, { x: 1.2, y: 2.2, w: 7.6, h: 2, fontSize: 24, bold: true, align: 'center', fontFace: FONT });
+        });
+
+        pptx.writeFile({ fileName: `小組簡報-${data.title}.pptx` });
+    }
+
+    function addHeader(slide, title, color, font) {
+        slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: 0.3, w: 9, h: 0.6, fill: { color: color } });
+        slide.addText(title, { x: 0.7, y: 0.45, fontSize: 24, color: "FFFFFF", fontFace: font, bold: true });
+    }
+</script>
+
+</body>
+</html>
