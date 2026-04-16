@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 小組組長全能助手 V8.0</title>
+    <title>SCCEFC 組長全能助手 V8.1</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -26,23 +26,23 @@
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
-    <h1>組長全能助手 V8.0</h1>
-    <p class="hint"> V8.0 更新：已整合專業研經七大範疇要求及視覺美化指令</p>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
+    <h1>組長全能助手 V8.1</h1>
+    <p class="hint"> V8.1 更新：強力排版校對 + 糾正地理錯誤 </p>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
     <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="可在此貼上 YouTube 網址...">
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業純淨指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
-    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製！')">📋 複製 WhatsApp 訊息</button>
+    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (結構：封面 > 經文 > 問題 > 專業研經)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版加強版)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -53,20 +53,12 @@
         const manualYT = document.getElementById('manualYoutube').value.trim();
         if (!input) { alert("請先貼上內容！"); return; }
 
-        // 1. 提取講題與經文 (支援多種標題格式)
         const title = extractInfo(input, /講題[：|:](.*?)\n/i) || extractInfo(input, /Sermon Title[：|:](.*?)\n/i) || "今日講道";
         const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || extractInfo(input, /Scripture[：|:](.*?)\n/i) || "請參閱網頁";
-        
-        // 2. 提取 YouTube 連結 (支援多種格式)
-        const youtube = manualYT || extractYoutube(input) || "（請手動加入 YouTube 連結）";
-        
-        // 3. 提取小組問題 (關鍵優化：模糊匹配關鍵字 + 強力剔除頁腳)
+        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
         const questions = extractQuestions(input);
-
-        // 4. 計算日期 (本週五與兩週後)
         const dates = calculateMeetingDates();
 
-        // --- 生成 WhatsApp 訊息 ---
         const waMsg = `Adult Pastoral Zone T1 cell group meeting
 Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
 Time: 5:45 pm - 7:30 pm
@@ -80,135 +72,61 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        // --- 優化 AI 指令，加入專業研經七大範疇要求及視覺美化指令 ---
-        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計大師。請根據我提供的教會文字內容規劃一份製作 PPT 用的內容大綱。
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
 
-### 🎨 視覺設計與配色要求（重要）：
-- **色調關鍵字**：清新、明亮、專業、溫馨、具有屬靈的開闊感。
-- **配色方案**：建議使用淺色背景（如米白色、極淺藍色、或淡鼠尾草綠），搭配深色文字以確保閱讀極度清晰。🚫 **嚴禁使用全黑背景**。
-- **配圖風格**：請務必為每一頁投影片（包括經文和討論問題），根據其章節和內容，提供一個高清、富含圖片、與主題相關、具有靈性默想氛圍且不單調的圖片描述（例如人物故事、象徵符號或自然風景）。
+### ⛔ 內容禁令 (必須嚴格執行)：
+1. **禁止幻覺**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」或任何宣道會。
+2. **禁止雜訊**：除題目外，禁止在投影片添加任何額外的屬靈口號、勵志語句或不知名的裝飾文字。
+3. **禁止亂改問題**：小組討論問題必須【完全一字不漏】搬運，不准加 Bullet points 或解釋。
 
-### ⚠️ 強制執行的內容規則：
-1. **簡報命名與腳註**：必須使用講題：【${title}】作為簡報主要識別。腳註嚴禁包含任何未知堂會名稱，僅使用「今日講題名稱 - 小組研經資料」。
-2. **分頁順序**：封面 -> 今日經文全文 -> 小組討論問題 -> 研經背景補充。
-3. **今日經文 (Slide 2)**：必须列出 (${scriptureRef}) 的【聖經原文全文】。請將每一節的聖經原文完整顯示，嚴禁只寫摘要或經文概要。
-4. **小組討論問題 (Slide 3 之後)**：
-   - 這裡必須【完全一字不漏】搬運提供的問題文字，不准做任何縮減、增加或語氣修改。
-   - 🚫 **絕對嚴禁**在這些頁面添加任何額外的 bullet points、重點摘要、解釋、心得、副標題或建議答案。
-   - 該頁面除了原本的問題題目外，【不准有任何其他文字】。
-5. **最後部分：研經背景補充 (專業客製)**：
-   請用中文（繁體）並以正統基督教信仰和聖經真理為基礎，解釋聖經【${scriptureRef}】。
-   請提供以下章節內容：
-   - 【經文概要】概述此章內容與主要事件。
-   - 【經文解釋】詳細闡述該節的含義。
-   - 【神學重點】指出核心神學信息、救恩啟示及屬靈信息。
-   - 【歷史文化背景】補充與理解本章相關的背景資料。
-   - 【引用】列出其他聖經相關經文，並說明其關聯。
-   - 【屬靈應用】提供如何將此章的信息應用於信徒生活。
-   - 【默想與反思問題】提出2-3個引導思考與靈修的問題。
+### 🎨 排版與設計要求：
+- **視覺風格**：清新、簡潔、對稱。背景限用「淺米白」或「極淡藍」。
+- **排版命令**：所有標題與內文必須「水平與垂直居中」，文字長度需適中，避免尷尬斷行。
+- **配圖要求**：為每一頁提供一個高清、具歷史深度或靈修默想感的圖片描述，圖片需與文字有清晰區隔，不可重疊影響閱讀。
+
+### 📅 簡報結構：
+1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
+2. **Slide 2 今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，不准摘要。
+3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體要大且置中。
+4. **研經背景答案**：最後部分請提供【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【引用】、【屬靈應用】、【默想與反思問題】。
 
 以下是網頁內容：
 ${input}`;
 
-        // 顯示輸出
         showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
         showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
-        
         document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // --- 核心提取函數 ---
-    function extractInfo(text, regex) {
-        const match = text.match(regex);
-        return match ? match[1].trim() : null;
-    }
-
-    function extractYoutube(text) {
-        // 匹配 youtube.com/watch?v=... 或 youtu.be/...
-        const ytRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i;
-        const match = text.match(ytRegex);
-        return match ? match[0] : null;
-    }
+    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
+    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
 
     function extractQuestions(text) {
-        // 可能的問題開始關鍵字
-        const startKeywords = ["討論問題", "討論題目", "小組分享問題", "小組問題", "討論問題：", "討論題目：", "小組分享問題：", "小組問題：", "小組進深分享問題", "小組進深分享問題：", "小組分享題目", "小組分享題目："];
+        const kw = ["討論問題", "小組分享問題", "小組問題", "討論題目", "小組進深分享問題"];
         let startIdx = -1;
-        let matchedKeyword = "";
-
-        // 尋找開始關鍵字
-        for (let kw of startKeywords) {
-            let idx = text.indexOf(kw);
-            if (idx !== -1 && (startIdx === -1 || idx < startIdx)) {
-                startIdx = idx;
-                matchedKeyword = kw;
-            }
+        let matchedKw = "";
+        for (let k of kw) {
+            let idx = text.indexOf(k);
+            if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; }
         }
-
-        // 如果找不到關鍵字，嘗試尋找 "1. " 起始的行
-        if (startIdx === -1) {
-            const listMatch = text.match(/\n\s*1\.\s/);
-            if (listMatch) startIdx = listMatch.index;
-        }
-
-        if (startIdx === -1) return "（未能偵測到討論問題，請檢查手動輸入內容）";
+        if (startIdx === -1) { const m = text.match(/\n\s*1\.\s/); if(m) startIdx = m.index; }
+        if (startIdx === -1) return "（未能偵測問題）";
         
-        // 取得開始起點之後的所有文字
-        let res = text.substring(startIdx + matchedKeyword.length).trim();
-        // 清理標題後的冒號
-        if (res.startsWith("：") || res.startsWith(":")) {
-            res = res.substring(1).trim();
-        }
-        
-        // --- 核心優化：更強力的剔除頁腳資訊和冗餘內容 ---
-        const stopKeywords = [
-            "Newer Post", 
-            "Older Post", 
-            "SOUTH CALGARY", 
-            "340 39 AVENUE", 
-            "OFFICE@SCCEFC.CA", 
-            "Google Calendar", 
-            "Service Times", 
-            "Congregations", 
-            "Office:", 
-            "Careers", 
-            "職位空缺", 
-            "📋", 
-            "複製 WhatsApp 訊息", 
-            "AI 簡報製作指令", 
-            "南加州宣道會" // 特別剔除
-        ];
+        let res = text.substring(startIdx + matchedKw.length).trim();
+        if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
 
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "OFFICE@SCCEFC.CA", "Google Calendar", "Service Times", "職位空缺", "📋"];
         let endIdx = res.length;
-        for (let s of stopKeywords) {
-            let si = res.indexOf(s);
-            if (si !== -1 && si < endIdx) {
-                endIdx = si;
-            }
-        }
-        
-        // 額外剔除正則：如果看到新一篇講道日期開始 (如 4.5.2026)，也切斷
-        const dateMatch = res.substring(0, endIdx).match(/\n\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]/);
-        if (dateMatch) endIdx = dateMatch.index;
-
+        for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
         return res.substring(0, endIdx).trim();
     }
 
     function calculateMeetingDates() {
-        const now = new Date();
-        // 找出本週五 (如果今天是週六/日，會找下個週五)
-        let thisFri = new Date(now);
-        thisFri.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
-        
-        const options = { month: 'short', day: 'numeric', year: 'numeric' };
-        const thisFriStr = thisFri.toLocaleDateString('en-US', options);
-        
-        // 兩週後
-        let nextFri = new Date(thisFri);
-        nextFri.setDate(thisFri.getDate() + 14);
-        const nextFriStr = nextFri.toLocaleDateString('en-US', options);
-
-        return { thisMeeting: thisFriStr, nextMeeting: nextFriStr };
+        const d = new Date();
+        const f = new Date(d); f.setDate(d.getDate() + (5 - d.getDay() + 7) % 7);
+        const opt = { month: 'short', day: 'numeric', year: 'numeric' };
+        const n = new Date(f); n.setDate(f.getDate() + 14);
+        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
     }
 
     function showResult(id, content, titleId, btnId) {
@@ -219,14 +137,13 @@ ${input}`;
     }
 
     function copyContent(id, msg) {
-        const text = document.getElementById(id).innerText;
-        navigator.clipboard.writeText(text).then(() => alert(msg));
+        navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => alert(msg));
     }
 
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ AI 指令已複製！\n現在將打開 Gemini，貼上後按 Enter 即可獲得專業且符合要求的簡報內容。");
+            alert("✅ 指令已複製！\n現在將打開 AI 視窗。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
