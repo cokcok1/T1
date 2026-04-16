@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V7.7</title>
+    <title>SCCEFC 組長全能助手 V7.8</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -26,7 +26,7 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
-    <h1>組長全能助手 V7.7 (純淨問題版)</h1>
+    <h1>組長全能助手 V7.8 (清新配色版)</h1>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
     <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
@@ -34,13 +34,13 @@
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可在此貼上 YouTube 網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成 (禁止 AI 擅自增加內容)</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成 (指定清新配色指令)</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyText('waOutput', 'WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (強制禁止添加額外意見)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (已加入視覺配色要求)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -70,18 +70,24 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        // --- 強力優化指令：嚴禁 AI 自作聰明加內容 ---
-        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據我提供的文字內容規劃一份 PPT 用的內容。
+        // --- 優化指令：加入清新配色的視覺要求 ---
+        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 簡報設計大師。請根據我提供的文字內容規劃一份 PPT 用的內容。
 
-### ⚠️ 強制執行的【鐵律】：
+### 🎨 視覺設計與配色要求（重要）：
+- **色調關鍵字**：清新、明亮、專業、溫馨。
+- **配色方案**：建議使用淺色背景（如米白色、極淺藍色、或淡鼠尾草綠），搭配深色文字（如深灰色或深藍色）以確保閱讀極度清晰。
+- **🚫 嚴禁使用**：絕對不要使用沉重的全黑背景或死氣沉沉的深色底。
+- **配圖風格**：建議搭配具有自然光感、溫暖、開闊感的高清圖片。
+
+### ⚠️ 內容與結構規則：
 1. **簡報命名**：必須使用：【${title}】。
 2. **分頁順序**：封面 -> 今日經文全文 -> 小組討論問題 -> 研經背景補充。
 3. **今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，嚴禁摘要。
 4. **小組討論問題 (Slide 3 之後)**：
    - 這裡必須【完全一字不漏】搬運提供的問題文字。
-   - 🚫 **絕對嚴禁**在這些頁面添加任何額外的 bullet points、重點摘要、解釋、心得或建議答案。
+   - 🚫 **絕對嚴禁**在這些頁面添加任何額外的解釋、小點、重點摘要或建議答案。
    - 該頁面除了原本的問題題目外，【不准有任何其他文字】。
-5. **研經背景補充**：請在所有討論問題之後，才提供深度解析（包含概要、解釋、神學重點、歷史背景、引用、應用、反思問題）。
+5. **研經背景補充**：在所有討論問題之後，才提供深度解析（包含概要、解釋、神學重點、歷史背景、引用、應用、反思問題）。
 
 以下是網頁內容：
 ${input}`;
@@ -107,7 +113,7 @@ ${input}`;
         let res = text.substring(start).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
 
-        const stopKeywords = ["Older Post", "Newer Post", "SOUTH CALGARY", "Service Times", "Office:", "Careers", "📋"];
+        const stopKeywords = ["Newer Post", "Older Post", "SOUTH CALGARY", "Service Times", "Office:", "Careers", "📋"];
         let end = res.length;
         for (let s of stopKeywords) { let si = res.indexOf(s); if (si !== -1 && si < end) end = si; }
         
