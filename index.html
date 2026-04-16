@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V7.3</title>
+    <title>SCCEFC 組長全能助手 V7.4</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -26,13 +26,13 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
-    <h1>組長全能助手 V7.3</h1>
+    <h1>組長全能助手 V7.4</h1>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
     <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
     
-    <span class="input-title">第二步：YouTube 連結 (若上面沒抓到，請在此貼上)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="可在此貼上 YouTube 網址，如 https://youtu.be/...">
+    <span class="input-title">第二步：YouTube 連結 (選填)</span>
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上 YouTube 網址...">
 
     <button class="btn-gen" onclick="processData()">✨ 一鍵生成簡報指令及 WhatsApp 訊息</button>
 
@@ -40,7 +40,7 @@
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyText('waOutput', 'WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (結構：封面 > 經文 > 問題 > 背景)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -52,16 +52,14 @@
         if (!input) { alert("請先貼上內容"); return; }
 
         // 提取資訊
-        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "教會大爭辯";
-        const scripture = extractInfo(input, /經文[：|:](.*?)\n/i) || "使徒行傳 11:1-18";
+        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "今日講道";
+        const scripture = extractInfo(input, /經文[：|:](.*?)\n/i) || "請參閱網頁";
         
-        // YouTube 偵測邏輯：優先使用手動貼上的，如果沒有，才從全文找
         const youtube = manualYT || extractYoutube(input) || "（請手動加入 YouTube 連結）";
-        
         const questions = extractQuestions(input);
         const dates = calculateDates();
 
-        // 1. WhatsApp 訊息
+        // 1. WhatsApp 訊息 (維持原有格式)
         const waMsg = `Adult Pastoral Zone T1 cell group meeting
 Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri} (每個月的第二和第四個星期五)
 Time: 5:45 pm - 7:30 pm
@@ -75,16 +73,28 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        // 2. AI 指令
-        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據提供文字規劃 PPT。
-強制規則：
-1. 簡報命名：【${title}】。
-2. 順序：封面 -> 講道大綱 -> 今日經文 -> 小組討論問題 -> 研經背景。
-3. 一字不漏：小組討論問題必須【完全一字不漏】搬運，每一題一頁。
-4. 提供深度研經：包含概要、解釋、神學重點、歷史背景、引用、應用、反思。
-5. 每頁提供一個配圖描述。
+        // 2. AI 指令 (更新順序：移除大綱)
+        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據我提供的文字規劃一份製作 PPT 用的內容。
 
-網頁文字：
+### ⚠️ 強制執行規則：
+1. **簡報命名**：這份 PowerPoint 的名稱必須直接使用文字中提取的講題：【${title}】。
+2. **分頁順序**：
+   - Slide 1: 封面 (講題、講員、日期)
+   - Slide 2: 今日經文 (顯示當天研讀的經文全文)
+   - Slide 3 之後: 小組討論問題 (必須【一字不漏】從原文搬運，每題獨立佔一頁)
+   - 最後部分: 研經背景與深度解析 (AI 補充內容)
+3. **一字不漏**：小組分享問題部分不准做任何縮減、增加或修改。
+4. **研經補充內容要求**：
+   - 【經文概要】
+   - 【經文解釋】
+   - 【神學重點】
+   - 【歷史文化背景】
+   - 【引用】相關經文
+   - 【屬靈應用】
+   - 【默想與反思問題】(額外提出 2 題)
+5. **圖片建議**：請為每一頁提供一個視覺描述。
+
+以下是網頁內容：
 ${input}`;
 
         display('waOutput', waMsg, 'waTitle', 'copyWaBtn');
