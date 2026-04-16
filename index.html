@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V7.6</title>
+    <title>SCCEFC 組長全能助手 V7.7</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -26,7 +26,7 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
-    <h1>組長全能助手 V7.6</h1>
+    <h1>組長全能助手 V7.7 (純淨問題版)</h1>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
     <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
@@ -34,13 +34,13 @@
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可在此貼上 YouTube 網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成 (經文必含全文版)</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成 (禁止 AI 擅自增加內容)</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyText('waOutput', 'WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (Slide 2 強制顯示經文全文)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (強制禁止添加額外意見)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -70,18 +70,18 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        // --- 更新 AI 指令，強力要求經文全文 ---
-        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據我提供的教會文字內容規劃一份製作 PPT 用的內容大綱。
+        // --- 強力優化指令：嚴禁 AI 自作聰明加內容 ---
+        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據我提供的文字內容規劃一份 PPT 用的內容。
 
-### ⚠️ 強制執行規則：
-1. **簡報命名**：PowerPoint 名稱必須使用：【${title}】。
-2. **分頁順序**：封面 -> 今日經文 -> 小組分享問題 -> 研經背景補充。
-3. **今日經文 (Slide 2) 重要要求**：
-   - 這裡【必須列出經文全文】（${scriptureRef}）。
-   - 請將每一節的聖經原文完整顯示，以便組員閱讀。
-   - 🚫 嚴禁只寫重點摘要、經文概要或縮寫。
-4. **一字不漏**：對於「小組分享問題」，必須【完全一字不漏】地搬運，不可做任何修改，每一題獨立佔一頁。
-5. **研經補充要求**：請在簡報最後提供深度解析（包含概要、解釋、神學重點、歷史背景、引用、應用、反思問題）。
+### ⚠️ 強制執行的【鐵律】：
+1. **簡報命名**：必須使用：【${title}】。
+2. **分頁順序**：封面 -> 今日經文全文 -> 小組討論問題 -> 研經背景補充。
+3. **今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，嚴禁摘要。
+4. **小組討論問題 (Slide 3 之後)**：
+   - 這裡必須【完全一字不漏】搬運提供的問題文字。
+   - 🚫 **絕對嚴禁**在這些頁面添加任何額外的 bullet points、重點摘要、解釋、心得或建議答案。
+   - 該頁面除了原本的問題題目外，【不准有任何其他文字】。
+5. **研經背景補充**：請在所有討論問題之後，才提供深度解析（包含概要、解釋、神學重點、歷史背景、引用、應用、反思問題）。
 
 以下是網頁內容：
 ${input}`;
@@ -98,7 +98,7 @@ ${input}`;
     }
 
     function extractQuestions(text) {
-        const kw = ["小組進深分享問題", "小組分享問題", "討論問題", "小組問題"];
+        const kw = ["小組分享題目", "小組進深分享問題", "小組分享問題", "討論問題", "小組問題"];
         let start = -1;
         for (let k of kw) { let i = text.indexOf(k); if (i !== -1 && (start===-1 || i<start)) start = i + k.length; }
         if (start === -1) { const listMatch = text.match(/\n\s*1\.\s/); if(listMatch) start = listMatch.index; }
@@ -107,7 +107,7 @@ ${input}`;
         let res = text.substring(start).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
 
-        const stopKeywords = ["Newer Post", "Older Post", "SOUTH CALGARY", "Service Times", "Office:", "Careers", "📋"];
+        const stopKeywords = ["Older Post", "Newer Post", "SOUTH CALGARY", "Service Times", "Office:", "Careers", "📋"];
         let end = res.length;
         for (let s of stopKeywords) { let si = res.indexOf(s); if (si !== -1 && si < end) end = si; }
         
@@ -138,7 +138,7 @@ ${input}`;
 
     function copyToGemini() {
         navigator.clipboard.writeText(document.getElementById('aiOutput').innerText).then(() => {
-            alert("指令已複製！現在將打開 Gemini。");
+            alert("✅ 指令已複製！\n現在將打開 Gemini。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
