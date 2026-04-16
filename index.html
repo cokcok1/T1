@@ -3,37 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 小組簡報超級指令器 (V3.0)</title>
+    <title>小組簡報指令產生器 (V2.0)</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; }
         body { font-family: 'Microsoft JhengHei', system-ui, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
-        h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 5px; }
-        .sub-h { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; font-size: 1rem; }
-        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
-        button:hover { background: #123456; transform: translateY(-2px); }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.5rem; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        button:hover { opacity: 0.9; }
+        #promptOutput { width: 100%; height: 300px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; font-size: 0.9rem; display: none; margin-top: 20px; white-space: pre-wrap; overflow-y: auto; }
         .copy-btn { background: var(--accent); display: none; }
-        #status { text-align: center; color: #666; margin-top: 10px; font-weight: bold; }
-        #promptOutput { 
-            width: 100%; height: 400px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; 
-            background: #fdfdfd; font-size: 0.95rem; display: none; margin-top: 20px; 
-            white-space: pre-wrap; overflow-y: auto; line-height: 1.6; color: #333;
-        }
-        .highlight { color: #d35400; font-weight: bold; }
+        #status { text-align: center; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; font-size: 1.1rem;">⛪ T1</div>
-    <h1>小組簡報內容助手</h1>
-    <p class="sub-h">一鍵抓取網頁內容並生成專業研經指令</p>
+    <div style="text-align: center; color: var(--accent); font-weight: bold;">SCCEFC 小組組長專用</div>
+    <h1>小組簡報指令產生器</h1>
     
     <input type="text" id="sermonUrl" placeholder="貼上教會講道網址..." value="https://www.sccefc.ca/cn/sermon-upload/4122026-">
     
     <button id="genBtn" onclick="generateMegaPrompt()">生成超級指令</button>
-    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">📋 複製指令並前往 Gemini</button>
+    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">📋 複製指令並前往 AI</button>
     
     <div id="status"></div>
     <div id="promptOutput"></div>
@@ -51,64 +44,48 @@
 
         try {
             genBtn.disabled = true;
-            status.innerText = "🔍 正在讀取網頁文字內容...";
+            status.innerText = "🔍 正在讀取講道網頁內容...";
             
+            // 使用 AllOrigins 代理抓取網頁文字
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
             const response = await fetch(proxyUrl);
             const data = await response.json();
             
             const parser = new DOMParser();
             const doc = parser.parseFromString(data.contents, 'text/html');
-            const fullText = doc.body.innerText.replace(/\s+/g, ' ').substring(0, 6000);
+            
+            // 提取網頁中的所有文字
+            const fullText = doc.body.innerText.replace(/\s+/g, ' ').substring(0, 5000);
 
-            // --- 核心超級指令 (嚴格執行順序與字數要求) ---
-            const megaPrompt = `你現在是一位專業的聖經教師與 PowerPoint 簡報設計師。請根據我提供的教會講道文字，規劃一份製作 PowerPoint 用的內容大綱。
+            // 組合超級指令 (加入你原本最專業的解經要求)
+            const megaPrompt = `你現在是一位資深的聖經教師和小組帶領者。請根據我提供的教會講道網頁文字，製作一份完整的 PowerPoint 簡報內容大綱。
 
-### ⚠️ 核心強制規則（必須嚴格遵守）：
-1. **分頁順序**：投影片必須按此順序排列：封面 -> 講道大綱 -> 今日經文 -> 小組進深分享問題 -> 經文深度研讀與背景。
-2. **字數要求**：對於「小組進深分享問題」部分，你必須從原文中【一字不漏】地搬運，嚴禁任何總結、修改、縮減或增加文字。
-3. **視覺要求**：請為每一頁投影片提供 1-2 個建議的圖片描述（Visual Image Prompts），以輔助我配圖。
-4. **信仰立場**：內容須基於正統基督教信仰與聖經真理。
+請嚴格遵守以下要求：
+1. 基礎立場：以正統基督教信仰和聖經真理為基礎。
+2. 內容提取：從提供的文字中找出「講題」、「經文」、「講道大綱」和「小組進深分享問題」。
+3. 深度研經：針對該段經文，請根據以下格式提供深度內容：
+   - 【經文概要】概述內容與主要事件。
+   - 【經文解釋】詳細闡述含義。
+   - 【神學重點】核心神學信息、救恩啟示。
+   - 【歷史文化背景】補充理解所需的背景。
+   - 【引用】列出相關經文並說明關聯。
+   - 【屬靈應用】如何應用於信徒生活。
+   - 【默想與反思問題】2-3個思考題。
 
-### 📅 投影片結構規劃：
+4. 簡報排版建議：請將以上所有內容（包括提取的大綱和問題）整理成「第 1 頁：封面... 第 2 頁：大綱...」的分頁格式，方便我直接製作 PPT。小組問題請務必一字不漏地保留。
 
-**Slide 1: 封面**
-- 包含講題、講員、日期。
-
-**Slide 2: 講道大綱**
-- 提取文中的引言、分點大綱、結語。
-
-**Slide 3: 今日經文**
-- 顯示當天研讀的聖經章節與全文。
-
-**Slide 4-8: 小組進深分享問題 (重要！)**
-- 必須【一字不漏】列出文中所有的小組分享問題。
-- 每一題獨立佔一個 Slide 以方便討論。
-
-**Slide 9-14: 聖經研讀與背景 (AI 補充)**
-- 請根據「今日經文」提供以下內容：
-  - 【經文概要】概述事件。
-  - 【經文解釋】詳細闡述含義。
-  - 【神學重點】核心信息與救恩啟示。
-  - 【歷史文化背景】補充當時的社會文化脈絡。
-  - 【引用】相關經文及其關聯說明。
-  - 【屬靈應用】如何應用於現今生活。
-  - 【默想與反思問題】另外提出 2 個引導思考的問題。
-
----
-以下是教會網頁的原始文字內容：
+以下是教會網頁內容：
+------------------
 ${fullText}
----`;
+------------------`;
 
             output.innerText = megaPrompt;
             output.style.display = "block";
             copyBtn.style.display = "block";
-            status.innerHTML = "✅ 指令已生成！請點擊下方按鈕複製並開始使用。";
-            status.style.color = "green";
+            status.innerText = "✅ 指令已生成！請複製並貼到 AI。";
             
         } catch (e) {
-            status.innerText = "❌ 發生錯誤，請檢查網址或刷新頁面重試。";
-            status.style.color = "red";
+            status.innerText = "❌ 讀取失敗，請確認網址或稍後再試。";
             console.error(e);
         } finally {
             genBtn.disabled = false;
@@ -118,7 +95,7 @@ ${fullText}
     function copyToClipboard() {
         const text = document.getElementById('promptOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！\n現在將為你打開 Gemini，直接貼上並按 Enter 即可。");
+            alert("✅ 指令已複製！\n現在將為你打開 Gemini，直接貼上即可。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
