@@ -3,63 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 小組組長助手 V7.0</title>
+    <title>SCCEFC 組長助手 V7.1</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
         .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 850px; }
         h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
-        textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; background: #fffde7; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-gen { background: var(--primary); }
+        textarea { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; background: #fffde7; line-height: 1.5; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); font-size: 1.1rem; }
+        .btn-gen:hover { background: #123456; }
         .btn-copy { background: var(--accent); display: none; }
         .btn-wa { background: var(--whatsapp); display: none; }
-        .output-box { width: 100%; height: 250px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
-        .section-title { font-weight: bold; color: var(--primary); margin-top: 20px; border-left: 4px solid var(--accent); padding-left: 10px; display: none; }
+        .output-box { width: 100%; height: 280px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; color: #333; }
+        .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; font-size: 1.1rem; }
+        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold;">T1</div>
-    <h1>組長全能助手 (V7.0)</h1>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
+    <h1>組長全能助手 V7.1</h1>
     
-    <label style="font-weight: bold;">第一步：請在教會網頁全選 (Ctrl+A) 並貼在下面：</label>
-    <textarea id="rawInput" rows="6" placeholder="在此貼上講道網頁內容文字..."></textarea>
+    <div class="hint">💡 使用說明：到教會網頁按 Command+A (全選) -> Command+C (複製) -> 回到這裡貼上。</div>
+    <textarea id="rawInput" rows="8" placeholder="請在此貼上教會網頁的文字內容..."></textarea>
     
-    <button class="btn-gen" style="width:100%" onclick="processData()">✨ 一鍵生成簡報指令及 WhatsApp 訊息</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵提取資料並生成</button>
 
-    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息 (包含 YouTube 連結)</div>
     <div id="waOutput" class="output-box"></div>
-    <button id="copyWaBtn" class="btn-wa" style="width:100%" onclick="copyContent('waOutput', 'WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
+    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製！')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (用於 Gemini)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報指令 (PPT 名稱將自動設為講題)</div>
     <div id="aiOutput" class="output-box"></div>
-    <button id="copyAiBtn" class="btn-copy" style="width:100%" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
+    <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
 
 <script>
     function processData() {
         const input = document.getElementById('rawInput').value;
-        if (!input) { alert("請先貼上網頁內容"); return; }
+        if (!input) { alert("請先貼上內容！"); return; }
 
-        // 提取資訊
-        const title = extractInfo(input, /講題：(.*?)\n/i) || extractInfo(input, /Sermon Title:\s*(.*)/i) || "今日講道";
-        const scripture = extractInfo(input, /經文：(.*?)\n/i) || extractInfo(input, /Scripture:\s*(.*)/i) || "請參閱網頁";
+        // 1. 提取講題與經文
+        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "（請手動填入講題）";
+        const scripture = extractInfo(input, /經文[：|:](.*?)\n/i) || "（請手動填入經文）";
+        
+        // 2. 提取 YouTube 連結 (支援多種格式)
         const youtube = extractYoutube(input);
+        
+        // 3. 提取小組問題 (定位並截取)
         const questions = extractQuestions(input);
 
-        // 生成日期
+        // 4. 計算日期 (本週五與兩週後)
         const dates = calculateMeetingDates();
 
-        // 1. 生成 WhatsApp 訊息
+        // --- 生成 WhatsApp 訊息 ---
         const waMsg = `Adult Pastoral Zone T1 cell group meeting
 Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
-${youtube || "YouTube 連結請參考網頁"}
+${youtube ? youtube : "（未偵測到 YouTube 連結，請手動加入）"}
 
 講題：${title}
 經文：${scripture}
@@ -67,57 +72,69 @@ ${youtube || "YouTube 連結請參考網頁"}
 小組進深分享問題：
 ${questions}`;
 
-        // 2. 生成 AI 指令
+        // --- 生成 AI 簡報指令 ---
         const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計師。請根據提供的文字規劃 PPT 內容。
 
 ### ⚠️ 強制執行規則：
 1. **簡報命名**：這份 PowerPoint 的名稱必須直接使用提取的講題：【${title}】。
 2. **分頁順序**：封面 -> 講道大綱 -> 今日經文 -> 小組進深分享問題 -> 經文深度研讀背景。
-3. **一字不漏**：對於「小組進深分享問題」，必須【完全一字不漏】地搬運，不可做任何修改，每一題獨立佔一頁。
+3. **一字不漏**：對於「小組進深分享問題」，必須【完全一字不漏】地搬運網頁原文，不准做任何修改或簡化。每一題獨立佔一頁。
 4. **深度內容**：請針對經文提供【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【引用】、【屬靈應用】、【默想反思】。
 5. **圖片建議**：請為每一頁提供一個視覺描述。
 
 網頁內容如下：
 ${input}`;
 
-        // 顯示結果
-        displayResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
-        displayResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
+        // 顯示輸出
+        showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
+        showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
         
         document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
     }
 
+    // 核心提取函數
     function extractInfo(text, regex) {
         const match = text.match(regex);
         return match ? match[1].trim() : null;
     }
 
     function extractYoutube(text) {
-        const ytRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n]+/i;
+        // 匹配 youtube.com/watch?v=... 或 youtu.be/...
+        const ytRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i;
         const match = text.match(ytRegex);
         return match ? match[0] : null;
     }
 
     function extractQuestions(text) {
-        const startIdx = text.indexOf("小組進深分享問題");
-        if (startIdx === -1) return "（未偵測到問題，請手動檢查）";
-        let questionsText = text.substring(startIdx).replace("小組進深分享問題：", "").trim();
-        // 截斷到可能的結尾處 (例如下一節標題)
-        const endIdx = questionsText.search(/\n[^\n\d\s.]{4,}/); 
-        return endIdx !== -1 ? questionsText.substring(0, endIdx).trim() : questionsText;
+        const keyword = "小組進深分享問題";
+        const startIdx = text.indexOf(keyword);
+        if (startIdx === -1) return "（未找到問題，請檢查貼上的文字）";
+        
+        // 抓取關鍵字之後的內容，並清理多餘空白
+        let content = text.substring(startIdx + keyword.length).trim();
+        if (content.startsWith("：")) content = content.substring(1).trim();
+        
+        // 嘗試過濾掉頁尾無關文字 (通常在下一段標題前結束)
+        const lines = content.split('\n');
+        let filteredLines = [];
+        for (let line of lines) {
+            // 如果遇到明顯是網頁頁尾的文字則停止 (例如 "Copyright", "聯絡我們" 等)
+            if (line.includes("Copyright") || line.includes("All Rights Reserved")) break;
+            filteredLines.push(line);
+        }
+        return filteredLines.join('\n').trim();
     }
 
     function calculateMeetingDates() {
         const now = new Date();
-        // 找到本週五
+        // 找出本週五 (如果今天是週六/日，會找下個週五)
         let thisFri = new Date(now);
         thisFri.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
         
-        // 簡單格式化
         const options = { month: 'short', day: 'numeric', year: 'numeric' };
         const thisFriStr = thisFri.toLocaleDateString('en-US', options);
         
-        // 計算下一次 (14天後)
+        // 兩週後
         let nextFri = new Date(thisFri);
         nextFri.setDate(thisFri.getDate() + 14);
         const nextFriStr = nextFri.toLocaleDateString('en-US', options);
@@ -125,9 +142,10 @@ ${input}`;
         return { thisMeeting: thisFriStr, nextMeeting: nextFriStr };
     }
 
-    function displayResult(id, content, titleId, btnId) {
-        document.getElementById(id).innerText = content;
-        document.getElementById(id).style.display = "block";
+    function showResult(id, content, titleId, btnId) {
+        const el = document.getElementById(id);
+        el.innerText = content;
+        el.style.display = "block";
         document.getElementById(titleId).style.display = "block";
         document.getElementById(btnId).style.display = "block";
     }
@@ -140,7 +158,7 @@ ${input}`;
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("指令已複製！現在將為你打開 Gemini。");
+            alert("✅ AI 指令已複製！\n現在將打開 Gemini，貼上後按 Enter 即可獲得 PPT 內容。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
