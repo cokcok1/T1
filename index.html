@@ -1,53 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <title>小組簡報轉換器 - 手動版</title>
-    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小組簡報指令產生器 (V2.0)</title>
     <style>
-        body { font-family: system-ui; padding: 40px; background: #f4f7f9; text-align: center; }
-        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        textarea { width: 100%; height: 300px; margin: 20px 0; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-        button { background: #1a4a7c; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+        :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; }
+        body { font-family: 'Microsoft JhengHei', system-ui, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.5rem; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        button:hover { opacity: 0.9; }
+        #promptOutput { width: 100%; height: 300px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; font-size: 0.9rem; display: none; margin-top: 20px; white-space: pre-wrap; overflow-y: auto; }
+        .copy-btn { background: var(--accent); display: none; }
+        #status { text-align: center; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Step 1: 貼上 AI 生成的內容</h2>
-    <textarea id="aiInput" placeholder="請將 AI 生成的 Slide 內容全部貼在這裡..."></textarea>
-    <h2>Step 2: 生成簡報</h2>
-    <button onclick="generateManualPPT()">一鍵下載專業 PowerPoint</button>
+<div class="card">
+    <div style="text-align: center; color: var(--accent); font-weight: bold;">SCCEFC 小組組長專用</div>
+    <h1>小組簡報指令產生器</h1>
+    
+    <input type="text" id="sermonUrl" placeholder="貼上教會講道網址..." value="https://www.sccefc.ca/cn/sermon-upload/4122026-">
+    
+    <button id="genBtn" onclick="generateMegaPrompt()">生成超級指令</button>
+    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">📋 複製指令並前往 AI</button>
+    
+    <div id="status"></div>
+    <div id="promptOutput"></div>
 </div>
 
 <script>
-    function generateManualPPT() {
-        const text = document.getElementById('aiInput').value;
-        if (!text) return alert("請先貼上內容");
+    async function generateMegaPrompt() {
+        const url = document.getElementById('sermonUrl').value.trim();
+        const status = document.getElementById('status');
+        const output = document.getElementById('promptOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const genBtn = document.getElementById('genBtn');
 
-        let pptx = new PptxGenJS();
-        
-        // 將內容按 "Slide" 分割
-        const slides = text.split(/Slide \d+:/i).filter(s => s.trim());
+        if (!url) { alert("請貼上網址"); return; }
 
-        slides.forEach((content, index) => {
-            let slide = pptx.addSlide();
+        try {
+            genBtn.disabled = true;
+            status.innerText = "🔍 正在讀取講道網頁內容...";
             
-            // 專業藍色標題欄
-            slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.6, fill: { color: "1A4A7C" } });
-            slide.addText(`小組分享 - 第 ${index + 1} 頁`, { x: 0.5, y: 0.15, color: "FFFFFF", fontSize: 18, bold: true });
+            // 使用 AllOrigins 代理抓取網頁文字
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            const data = await response.json();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data.contents, 'text/html');
+            
+            // 提取網頁中的所有文字
+            const fullText = doc.body.innerText.replace(/\s+/g, ' ').substring(0, 5000);
 
-            // 內容排版
-            slide.addText(content.trim(), { 
-                x: 0.5, y: 1.2, w: 9, h: 4, 
-                fontSize: 18, 
-                fontFace: "Microsoft JhengHei",
-                bullet: true,
-                valign: 'top'
-            });
+            // 組合超級指令 (加入你原本最專業的解經要求)
+            const megaPrompt = `你現在是一位資深的聖經教師和小組帶領者。請根據我提供的教會講道網頁文字，製作一份完整的 PowerPoint 簡報內容大綱。
+
+請嚴格遵守以下要求：
+1. 基礎立場：以正統基督教信仰和聖經真理為基礎。
+2. 內容提取：從提供的文字中找出「講題」、「經文」、「講道大綱」和「小組進深分享問題」。
+3. 深度研經：針對該段經文，請根據以下格式提供深度內容：
+   - 【經文概要】概述內容與主要事件。
+   - 【經文解釋】詳細闡述含義。
+   - 【神學重點】核心神學信息、救恩啟示。
+   - 【歷史文化背景】補充理解所需的背景。
+   - 【引用】列出相關經文並說明關聯。
+   - 【屬靈應用】如何應用於信徒生活。
+   - 【默想與反思問題】2-3個思考題。
+
+4. 簡報排版建議：請將以上所有內容（包括提取的大綱和問題）整理成「第 1 頁：封面... 第 2 頁：大綱...」的分頁格式，方便我直接製作 PPT。小組問題請務必一字不漏地保留。
+
+以下是教會網頁內容：
+------------------
+${fullText}
+------------------`;
+
+            output.innerText = megaPrompt;
+            output.style.display = "block";
+            copyBtn.style.display = "block";
+            status.innerText = "✅ 指令已生成！請複製並貼到 AI。";
+            
+        } catch (e) {
+            status.innerText = "❌ 讀取失敗，請確認網址或稍後再試。";
+            console.error(e);
+        } finally {
+            genBtn.disabled = false;
+        }
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('promptOutput').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ 指令已複製！\n現在將為你打開 Gemini，直接貼上即可。");
+            window.open("https://gemini.google.com/app", "_blank");
         });
-
-        pptx.writeFile({ fileName: `小組簡報-${new Date().toLocaleDateString()}.pptx` });
     }
 </script>
 
