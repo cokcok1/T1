@@ -3,114 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 小組簡報指令助手 (V5.0)</title>
+    <title>SCCEFC 助手 6.0 </title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
         .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
-        h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
-        textarea { height: 150px; display: none; background: #fffcf0; border-color: var(--accent); }
-        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 10px; }
+        .desc { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
         button:hover { background: #123456; }
-        .copy-btn { background: var(--accent); display: none; }
-        #status { text-align: center; color: #666; margin: 15px 0; font-weight: bold; }
-        #promptOutput { width: 100%; height: 350px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fdfdfd; font-size: 0.95rem; display: none; white-space: pre-wrap; overflow-y: auto; }
-        .manual-label { display: none; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+        .copy-btn { background: var(--accent); display: none; margin-top: 10px; }
+        .manual-section { background: #fff8e1; padding: 15px; border-radius: 8px; border: 1px solid #ffe082; margin-top: 20px; }
+        #promptOutput { width: 100%; height: 350px; padding: 15px; border: 1px solid #ddd; display: none; margin-top: 20px; white-space: pre-wrap; overflow-y: auto; background: #fafafa; font-size: 0.95rem; line-height: 1.6; }
+        .status-msg { text-align: center; margin: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold;">教會小組組長神器</div>
-    <h1>一鍵生成 AI 簡報指令</h1>
+    <div style="text-align: center; color: var(--accent); font-weight: bold;">T1小組工具</div>
+    <h1>小組簡報指令產生器 (V6.0)</h1>
+    <p class="desc">自動獲取失敗時，請直接使用下方的「手動貼上」功能</p>
     
     <input type="text" id="sermonUrl" placeholder="貼上講道網址..." value="https://www.sccefc.ca/cn/sermon-upload/4122026-">
+    <button id="autoBtn" onclick="tryAutoFetch()">📡 嘗試自動讀取網頁</button>
     
-    <div id="manualArea">
-        <div class="manual-label" id="manualLabel">⚠️ 自動讀取失敗，請在此貼上網頁內容：</div>
-        <textarea id="manualContent" placeholder="請到教會網頁全選文字 (Ctrl+A)，然後在此貼上 (Ctrl+V)"></textarea>
+    <div id="status" class="status-msg"></div>
+
+    <div class="manual-section" id="manualArea">
+        <label style="font-weight: bold; color: #795548;">💡 萬能模式：如果上面失敗，請在此貼上網頁全文內容</label>
+        <textarea id="manualText" rows="4" style="margin-top:10px;" placeholder="去教會網頁 Ctrl+A 全選，Ctrl+V 貼到這裡..."></textarea>
+        <button style="background: #795548;" onclick="buildMegaPrompt(document.getElementById('manualText').value)">🛠️ 使用手動貼上內容生成指令</button>
     </div>
 
-    <button id="genBtn" onclick="process()">生成超級指令</button>
-    <button id="copyBtn" class="copy-btn" onclick="copyAndGo()">📋 複製指令並前往 Gemini</button>
-    
-    <div id="status"></div>
     <div id="promptOutput"></div>
+    <button id="copyBtn" class="copy-btn" onclick="copyToClipboard()">📋 複製指令並前往 Gemini</button>
 </div>
 
 <script>
-    async function process() {
+    // 嘗試多重代理抓取
+    async function tryAutoFetch() {
         const url = document.getElementById('sermonUrl').value.trim();
-        const manualContent = document.getElementById('manualContent');
         const status = document.getElementById('status');
-        const output = document.getElementById('promptOutput');
+        const autoBtn = document.getElementById('autoBtn');
+        
+        status.innerText = "⏳ 正在嘗試突破防火牆...";
+        status.style.color = "#1a4a7c";
+        autoBtn.disabled = true;
 
-        // 如果手動輸入框有內容，直接處理
-        if (manualContent.style.display === "block" && manualContent.value.trim() !== "") {
-            generateFinalPrompt(manualContent.value);
-            return;
-        }
-
-        // 否則嘗試自動抓取
         try {
-            status.innerText = "⏳ 正在嘗試自動讀取網頁 (請稍候)...";
-            status.style.color = "#666";
-            
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            
-            if (!data.contents || data.contents.length < 500) {
-                throw new Error("抓取內容不足");
-            }
-            
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
-            generateFinalPrompt(doc.body.innerText);
+            // 嘗試 Proxy A
+            let res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+            let data = await res.json();
+            let html = data.contents;
 
+            if (!html) {
+                // 嘗試 Proxy B
+                status.innerText = "⏳ 代理 A 受阻，嘗試代理 B...";
+                res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                html = await res.text();
+            }
+
+            if (html && html.length > 500) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                buildMegaPrompt(doc.body.innerText);
+                status.innerText = "✅ 自動抓取成功！";
+                status.style.color = "green";
+            } else {
+                throw new Error();
+            }
         } catch (e) {
-            console.error(e);
-            status.innerText = "❌ 自動讀取受阻（網站防火牆或代理斷線）";
+            status.innerText = "❌ 自動讀取受阻（請使用下方手動貼上模式）";
             status.style.color = "red";
-            // 顯示手動輸入框
-            document.getElementById('manualLabel').style.display = "block";
-            manualContent.style.display = "block";
-            document.getElementById('genBtn').innerText = "立即根據貼上內容生成";
+        } finally {
+            autoBtn.disabled = false;
         }
     }
 
-    function generateFinalPrompt(rawText) {
+    function buildMegaPrompt(rawContent) {
+        // 過濾多餘空白
+        const cleanContent = rawContent.replace(/\s+/g, ' ').substring(0, 5000);
+
+        const megaPrompt = `你現在是專業的聖經教師與 PowerPoint 簡報設計師。請根據提供的文字規劃 PPT 內容。
+
+### ⚠️ 強制執行規則：
+1. **簡報命名**：這份 PowerPoint 的名稱必須直接使用文字中提取的【講題名稱】。
+2. **分頁順序**：封面 -> 講道大綱 -> 今日經文 -> 小組進深分享問題 -> 經文深度研讀背景。
+3. **一字不漏**：對於「小組進深分享問題」，必須【完全一字不漏】地搬運，不可做任何縮減、增加或語氣修改。每一題必須獨立佔用一頁投影片。
+4. **研經補充**：請針對經文提供【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【引用】、【屬靈應用】、【默想反思】。
+5. **圖片建議**：請為每一頁投影片提供 1 個視覺圖片描述（Visual Prompts），以便我配圖。
+
+---
+以下是原始內容文字：
+${cleanContent}
+---`;
+
         const output = document.getElementById('promptOutput');
-        const copyBtn = document.getElementById('copyBtn');
-        const status = document.getElementById('status');
-
-        const cleanText = rawText.replace(/\s+/g, ' ').substring(0, 6000);
-
-        const megaPrompt = `你現在是專業聖經教師與 PPT 簡報設計師。請根據我提供的教會文字製作 PowerPoint 內容。
-
-### 🚨 絕對規則：
-1. **順序**：封面 -> 講道大綱 -> 今日經文 -> 小組進深分享問題 -> 經文深度研讀。
-2. **小組問題**：必須從原文【一字不漏】搬運，不准修改、不准增加、不准簡化！
-3. **今日經文**：請列出全文。
-4. **研讀內容**：包含【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【相關引用】、【屬靈應用】、【默想反思】。
-5. **配圖建議**：為每一頁投影片提供 1 個配圖描述。
-
---- 原始文字內容 ---
-${cleanText}
-------------------`;
-
         output.innerText = megaPrompt;
         output.style.display = "block";
-        copyBtn.style.display = "block";
-        status.innerText = "✅ 指令已生成！請複製。";
-        status.style.color = "green";
+        document.getElementById('copyBtn').style.display = "block";
+        
+        // 捲動到輸出區
+        output.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function copyAndGo() {
+    function copyToClipboard() {
         const text = document.getElementById('promptOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("指令已複製！現在將為你開啟 Gemini。");
+            alert("✅ 指令已複製！\n現在將為你打開 Gemini，貼上後 AI 就會幫你準備好以「講題」命名的簡報內容。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
