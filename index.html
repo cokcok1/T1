@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.0</title>
+    <title>SCCEFC 小組組長全能助手 V8.0</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -28,7 +28,7 @@
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
     <h1>組長全能助手 V8.0</h1>
-    <p class="hint">已整合專業研經七大範疇要求及視覺美化指令</p>
+    <p class="hint"> V8.0 更新：已整合專業研經七大範疇要求及視覺美化指令</p>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
     <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
@@ -53,12 +53,20 @@
         const manualYT = document.getElementById('manualYoutube').value.trim();
         if (!input) { alert("請先貼上內容！"); return; }
 
+        // 1. 提取講題與經文 (支援多種標題格式)
         const title = extractInfo(input, /講題[：|:](.*?)\n/i) || extractInfo(input, /Sermon Title[：|:](.*?)\n/i) || "今日講道";
         const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || extractInfo(input, /Scripture[：|:](.*?)\n/i) || "請參閱網頁";
+        
+        // 2. 提取 YouTube 連結 (支援多種格式)
         const youtube = manualYT || extractYoutube(input) || "（請手動加入 YouTube 連結）";
+        
+        // 3. 提取小組問題 (關鍵優化：模糊匹配關鍵字 + 強力剔除頁腳)
         const questions = extractQuestions(input);
+
+        // 4. 計算日期 (本週五與兩週後)
         const dates = calculateMeetingDates();
 
+        // --- 生成 WhatsApp 訊息 ---
         const waMsg = `Adult Pastoral Zone T1 cell group meeting
 Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
 Time: 5:45 pm - 7:30 pm
@@ -72,19 +80,23 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計大師。請根據我提供的文字內容規劃一份製作 PPT 用的內容。
+        // --- 優化 AI 指令，加入專業研經七大範疇要求及視覺美化指令 ---
+        const aiPrompt = `你現在是專業的聖經教師與 PowerPoint 設計大師。請根據我提供的教會文字內容規劃一份製作 PPT 用的內容大綱。
 
-### 🎨 視覺設計要求：
-- **風格**：清新、明亮、溫馨。
-- **配色**：淺色背景（米白/淺藍/淡綠）搭配深色清晰文字。🚫 **嚴禁全黑背景**。
-- **配圖**：為每頁提供一個具自然光感、深度默想氛圍的圖片視覺描述。
+### 🎨 視覺設計與配色要求（重要）：
+- **色調關鍵字**：清新、明亮、專業、溫馨、具有屬靈的開闊感。
+- **配色方案**：建議使用淺色背景（如米白色、極淺藍色、或淡鼠尾草綠），搭配深色文字以確保閱讀極度清晰。🚫 **嚴禁使用全黑背景**。
+- **配圖風格**：請務必為每一頁投影片（包括經文和討論問題），根據其章節和內容，提供一個高清、富含圖片、與主題相關、具有靈性默想氛圍且不單調的圖片描述（例如人物故事、象徵符號或自然風景）。
 
 ### ⚠️ 強制執行的內容規則：
-1. **簡報命名**：必須使用講題：【${title}】。
+1. **簡報命名與腳註**：必須使用講題：【${title}】作為簡報主要識別。腳註嚴禁包含任何未知堂會名稱，僅使用「今日講題名稱 - 小組研經資料」。
 2. **分頁順序**：封面 -> 今日經文全文 -> 小組討論問題 -> 研經背景補充。
-3. **今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，嚴禁摘要。
-4. **小組討論問題**：必須【完全一字不漏】搬運，不准修改。🚫 **絕對嚴禁**添加任何額外解釋或小點，頁面只能有原問題文字。
-5. **最後部分：研經背景補充**：
+3. **今日經文 (Slide 2)**：必须列出 (${scriptureRef}) 的【聖經原文全文】。請將每一節的聖經原文完整顯示，嚴禁只寫摘要或經文概要。
+4. **小組討論問題 (Slide 3 之後)**：
+   - 這裡必須【完全一字不漏】搬運提供的問題文字，不准做任何縮減、增加或語氣修改。
+   - 🚫 **絕對嚴禁**在這些頁面添加任何額外的 bullet points、重點摘要、解釋、心得、副標題或建議答案。
+   - 該頁面除了原本的問題題目外，【不准有任何其他文字】。
+5. **最後部分：研經背景補充 (專業客製)**：
    請用中文（繁體）並以正統基督教信仰和聖經真理為基礎，解釋聖經【${scriptureRef}】。
    請提供以下章節內容：
    - 【經文概要】概述此章內容與主要事件。
@@ -98,35 +110,105 @@ ${questions}`;
 以下是網頁內容：
 ${input}`;
 
+        // 顯示輸出
         showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
         showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
+        
+        document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
-    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
+    // --- 核心提取函數 ---
+    function extractInfo(text, regex) {
+        const match = text.match(regex);
+        return match ? match[1].trim() : null;
+    }
+
+    function extractYoutube(text) {
+        // 匹配 youtube.com/watch?v=... 或 youtu.be/...
+        const ytRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i;
+        const match = text.match(ytRegex);
+        return match ? match[0] : null;
+    }
 
     function extractQuestions(text) {
-        const kw = ["小組進深分享問題", "小組分享問題", "小組問題", "討論問題", "小組分享題目"];
-        let start = -1;
-        for (let k of kw) { let i = text.indexOf(k); if (i !== -1 && (start===-1 || i<start)) start = i + k.length; }
-        if (start === -1) { const listMatch = text.match(/\n\s*1\.\s/); if(listMatch) start = listMatch.index; }
-        if (start === -1) return "（未能偵測到問題）";
-        let res = text.substring(start).trim();
-        if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
-        const stopKeywords = ["Older Post", "Newer Post", "SOUTH CALGARY", "Service Times", "Office:", "Careers", "📋"];
-        let end = res.length;
-        for (let s of stopKeywords) { let si = res.indexOf(s); if (si !== -1 && si < end) end = si; }
-        const dateMatch = res.substring(0, end).match(/\n\d{1,2}\.\d{1,2}\.\d{4}/);
-        if (dateMatch) end = dateMatch.index;
-        return res.substring(0, end).trim();
+        // 可能的問題開始關鍵字
+        const startKeywords = ["討論問題", "討論題目", "小組分享問題", "小組問題", "討論問題：", "討論題目：", "小組分享問題：", "小組問題：", "小組進深分享問題", "小組進深分享問題：", "小組分享題目", "小組分享題目："];
+        let startIdx = -1;
+        let matchedKeyword = "";
+
+        // 尋找開始關鍵字
+        for (let kw of startKeywords) {
+            let idx = text.indexOf(kw);
+            if (idx !== -1 && (startIdx === -1 || idx < startIdx)) {
+                startIdx = idx;
+                matchedKeyword = kw;
+            }
+        }
+
+        // 如果找不到關鍵字，嘗試尋找 "1. " 起始的行
+        if (startIdx === -1) {
+            const listMatch = text.match(/\n\s*1\.\s/);
+            if (listMatch) startIdx = listMatch.index;
+        }
+
+        if (startIdx === -1) return "（未能偵測到討論問題，請檢查手動輸入內容）";
+        
+        // 取得開始起點之後的所有文字
+        let res = text.substring(startIdx + matchedKeyword.length).trim();
+        // 清理標題後的冒號
+        if (res.startsWith("：") || res.startsWith(":")) {
+            res = res.substring(1).trim();
+        }
+        
+        // --- 核心優化：更強力的剔除頁腳資訊和冗餘內容 ---
+        const stopKeywords = [
+            "Newer Post", 
+            "Older Post", 
+            "SOUTH CALGARY", 
+            "340 39 AVENUE", 
+            "OFFICE@SCCEFC.CA", 
+            "Google Calendar", 
+            "Service Times", 
+            "Congregations", 
+            "Office:", 
+            "Careers", 
+            "職位空缺", 
+            "📋", 
+            "複製 WhatsApp 訊息", 
+            "AI 簡報製作指令", 
+            "南加州宣道會" // 特別剔除
+        ];
+
+        let endIdx = res.length;
+        for (let s of stopKeywords) {
+            let si = res.indexOf(s);
+            if (si !== -1 && si < endIdx) {
+                endIdx = si;
+            }
+        }
+        
+        // 額外剔除正則：如果看到新一篇講道日期開始 (如 4.5.2026)，也切斷
+        const dateMatch = res.substring(0, endIdx).match(/\n\d{1,2}\.\d{1,2}\.\d{4}\s*[-–]/);
+        if (dateMatch) endIdx = dateMatch.index;
+
+        return res.substring(0, endIdx).trim();
     }
 
     function calculateMeetingDates() {
-        const d = new Date();
-        const f = new Date(d); f.setDate(d.getDate() + (5 - d.getDay() + 7) % 7);
-        const opt = { month: 'short', day: 'numeric', year: 'numeric' };
-        const n = new Date(f); n.setDate(f.getDate() + 14);
-        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
+        const now = new Date();
+        // 找出本週五 (如果今天是週六/日，會找下個週五)
+        let thisFri = new Date(now);
+        thisFri.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+        
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const thisFriStr = thisFri.toLocaleDateString('en-US', options);
+        
+        // 兩週後
+        let nextFri = new Date(thisFri);
+        nextFri.setDate(thisFri.getDate() + 14);
+        const nextFriStr = nextFri.toLocaleDateString('en-US', options);
+
+        return { thisMeeting: thisFriStr, nextMeeting: nextFriStr };
     }
 
     function showResult(id, content, titleId, btnId) {
@@ -144,7 +226,7 @@ ${input}`;
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！現在將打開 Gemini。");
+            alert("✅ AI 指令已複製！\n現在將打開 Gemini，貼上後按 Enter 即可獲得專業且符合要求的簡報內容。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
