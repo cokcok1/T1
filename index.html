@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V7.1</title>
+    <title>SCCEFC 小組組長神器 V8.0</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
-        body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        body { font-family: 'Microsoft JhengHei', system-ui, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
         .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 850px; }
         h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
+        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; text-align: center; }
         textarea { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; background: #fffde7; line-height: 1.5; }
         button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
         .btn-gen { background: var(--primary); font-size: 1.1rem; }
@@ -17,25 +18,24 @@
         .btn-wa { background: var(--whatsapp); display: none; }
         .output-box { width: 100%; height: 280px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; color: #333; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; font-size: 1.1rem; }
-        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1</div>
-    <h1>組長全能助手 V7.1</h1>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ Adult Pastoral Zone T1 | Cell Group</div>
+    <h1>組長全能助手 V8.0</h1>
     
-    <div class="hint">💡 使用說明：到教會網頁按 Command+A (全選) -> Command+C (複製) -> 回到這裡貼上。</div>
-    <textarea id="rawInput" rows="8" placeholder="請在此貼上教會網頁的文字內容..."></textarea>
+    <div class="hint">💡 懶人包：教會網頁全選複製 -> 貼在下面 -> 按大按鈕</div>
+    <textarea id="rawInput" rows="8" placeholder="在此貼上教會網頁文字內容..."></textarea>
     
-    <button class="btn-gen" onclick="processData()">✨ 一鍵提取資料並生成</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成 WhatsApp & AI 指令</button>
 
-    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息 (包含 YouTube 連結)</div>
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息 (包含日期及影片連結)</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製！')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報指令 (PPT 名稱將自動設為講題)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報指令 (PPT 名稱自動對應講題)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -43,19 +43,17 @@
 <script>
     function processData() {
         const input = document.getElementById('rawInput').value;
-        if (!input) { alert("請先貼上內容！"); return; }
+        if (!input) { alert("請先貼上內容內容！"); return; }
 
-        // 1. 提取講題與經文
+        // 1. 提取資訊 (使用模糊匹配核心字眼)
         const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "（請手動填入講題）";
         const scripture = extractInfo(input, /經文[：|:](.*?)\n/i) || "（請手動填入經文）";
-        
-        // 2. 提取 YouTube 連結 (支援多種格式)
         const youtube = extractYoutube(input);
         
-        // 3. 提取小組問題 (定位並截取)
-        const questions = extractQuestions(input);
+        // 2. 核心更改：模糊提取小組問題 (關鍵字含 "小組" + "問題")
+        const questions = extractFuzzyQuestions(input);
 
-        // 4. 計算日期 (本週五與兩週後)
+        // 3. 計算日期 (本週五與 14 天後)
         const dates = calculateMeetingDates();
 
         // --- 生成 WhatsApp 訊息 ---
@@ -78,7 +76,7 @@ ${questions}`;
 ### ⚠️ 強制執行規則：
 1. **簡報命名**：這份 PowerPoint 的名稱必須直接使用提取的講題：【${title}】。
 2. **分頁順序**：封面 -> 講道大綱 -> 今日經文 -> 小組進深分享問題 -> 經文深度研讀背景。
-3. **一字不漏**：對於「小組進深分享問題」，必須【完全一字不漏】地搬運網頁原文，不准做任何修改或簡化。每一題獨立佔一頁。
+3. **一字不漏**：對於「小組進深分享問題」，必須【完全一字不漏】地搬運網頁原文，每一題獨立佔一頁投影片。
 4. **深度內容**：請針對經文提供【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【引用】、【屬靈應用】、【默想反思】。
 5. **圖片建議**：請為每一頁提供一個視覺描述。
 
@@ -92,34 +90,33 @@ ${input}`;
         document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 核心提取函數
     function extractInfo(text, regex) {
         const match = text.match(regex);
         return match ? match[1].trim() : null;
     }
 
     function extractYoutube(text) {
-        // 匹配 youtube.com/watch?v=... 或 youtu.be/...
         const ytRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i;
         const match = text.match(ytRegex);
         return match ? match[0] : null;
     }
 
-    function extractQuestions(text) {
-        const keyword = "小組進深分享問題";
-        const startIdx = text.indexOf(keyword);
-        if (startIdx === -1) return "（未找到問題，請檢查貼上的文字）";
+    // --- 核心邏輯：模糊偵測小組問題標題 ---
+    function extractFuzzyQuestions(text) {
+        // 使用正則表達式尋找：小組 + (中間容許 0-5 個任意字) + 問題
+        const fuzzyRegex = /小組.{0,5}問題[：|:]?/i;
+        const match = text.match(fuzzyRegex);
         
-        // 抓取關鍵字之後的內容，並清理多餘空白
-        let content = text.substring(startIdx + keyword.length).trim();
-        if (content.startsWith("：")) content = content.substring(1).trim();
+        if (!match) return "（未自動偵測到問題標題，請手動檢查貼上的文字是否包含「小組問題」字眼）";
         
-        // 嘗試過濾掉頁尾無關文字 (通常在下一段標題前結束)
+        const startIdx = match.index + match[0].length;
+        let content = text.substring(startIdx).trim();
+        
+        // 過濾掉可能的網頁腳部雜訊
         const lines = content.split('\n');
         let filteredLines = [];
         for (let line of lines) {
-            // 如果遇到明顯是網頁頁尾的文字則停止 (例如 "Copyright", "聯絡我們" 等)
-            if (line.includes("Copyright") || line.includes("All Rights Reserved")) break;
+            if (line.includes("Copyright") || line.includes("All Rights Reserved") || line.includes("聯絡我們")) break;
             filteredLines.push(line);
         }
         return filteredLines.join('\n').trim();
@@ -127,14 +124,14 @@ ${input}`;
 
     function calculateMeetingDates() {
         const now = new Date();
-        // 找出本週五 (如果今天是週六/日，會找下個週五)
+        // 找出下一個週五 (若今日週五則回傳今日)
         let thisFri = new Date(now);
-        thisFri.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+        const dayDiff = (5 - now.getDay() + 7) % 7;
+        thisFri.setDate(now.getDate() + dayDiff);
         
         const options = { month: 'short', day: 'numeric', year: 'numeric' };
         const thisFriStr = thisFri.toLocaleDateString('en-US', options);
         
-        // 兩週後
         let nextFri = new Date(thisFri);
         nextFri.setDate(thisFri.getDate() + 14);
         const nextFriStr = nextFri.toLocaleDateString('en-US', options);
