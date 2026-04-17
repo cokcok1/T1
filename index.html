@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V9.2</title>
+    <title>SCCEFC 組長助手 V9.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
@@ -12,44 +12,40 @@
         h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
-        textarea { background: #fffde7; }
-        .upload-section { border: 2px dashed #1a4a7c; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 20px; background: #eef4f9; cursor: pointer; transition: 0.3s; }
-        .upload-section:hover { background: #e1ebf5; border-color: var(--accent); }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
-        .btn-gen { background: var(--primary); font-size: 1.1rem; }
-        .btn-gen:hover { background: #123456; }
+        textarea { background: #fffde7; line-height: 1.5; }
+        .upload-section { border: 2px dashed #1a4a7c; padding: 25px; text-align: center; border-radius: 8px; margin-bottom: 20px; background: #eef4f9; cursor: pointer; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); }
         .btn-wa { background: var(--whatsapp); display: none; }
         .btn-copy { background: var(--accent); display: none; }
-        .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
+        .output-box { width: 100%; height: 320px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
-        .hint { font-size: 0.85rem; color: #d35400; font-weight: bold; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V9.2</h1>
-    <p class="hint">🚀 已優化 PDF 第二頁講道資訊及 1-5 題問題自動篩選</p>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (Calgary, AB)</div>
+    <h1>組長全能助手 V9.3</h1>
 
     <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
-        <p id="uploadText">📄 點擊或拖放本週程序表 PDF</p>
+        <p id="uploadText">📄 點擊上傳程序表 PDF (自動提取第 2 頁資訊)</p>
         <input type="file" id="pdfFile" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)">
     </div>
 
-    <span class="input-title">第一步：核對內容 (PDF 自動提取)</span>
-    <textarea id="rawInput" rows="6" placeholder="PDF 內容將在此自動分類顯示..."></textarea>
+    <span class="input-title">內容核對 (如有需要請在此手動修正)</span>
+    <textarea id="rawInput" rows="8" placeholder="提取內容會在此顯示..."></textarea>
     
-    <span class="input-title">第二步：YouTube 連結 (選填)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="貼上 YouTube 影片網址...">
+    <span class="input-title">YouTube 連結 (選填)</span>
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="貼上本週 YouTube 影片連結...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業 WhatsApp 與 AI 指令</button>
 
-    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息 (格式已美化)</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版強化版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (結構：封面 > 經文全文 > 問題 > 專業研經)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -60,57 +56,52 @@
     async function handlePdfUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        document.getElementById('uploadText').innerText = "⏳ 正在分析程序表內容...";
+        document.getElementById('uploadText').innerText = "⏳ 正在精準分析 PDF...";
         
         try {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            let combinedText = "";
-
-            // 遍歷頁面提取文字
+            let fullText = "";
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                combinedText += content.items.map(item => item.str).join(" ") + "\n";
+                fullText += content.items.map(item => item.str).join(" ") + "\n";
             }
 
-            // --- 精準篩選邏輯 ---
-            // 1. 提取講題
-            const titleMatch = combinedText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|旨意)/i);
-            const title = titleMatch ? titleMatch[1].trim() : "（請檢查 PDF 並填入講題）";
-
-            // 2. 提取經文
-            const scriptureMatch = combinedText.match(/經文[：|: ]\s*([^\n\r]*?)(?:\n|講題|小組|旨意)/i);
-            const scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請檢查 PDF 並填入經文）";
-
-            // 3. 提取 1-5 題問題 (針對 PDF 的連續編號格式)
-            const questions = extractQuestionsFromPdf(combinedText);
-
-            // 格式化填入
-            document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組進深分享問題：\n${questions}`;
-            document.getElementById('uploadText').innerText = "✅ " + file.name + " 讀取成功！";
+            // --- 強力篩選邏輯 ---
+            const titleMatch = fullText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|旨意|小組)/i);
+            const title = titleMatch ? titleMatch[1].trim() : "（請填寫）";
             
+            const scriptureMatch = fullText.match(/經文[：|: ]\s*([^\n\r]*?)(?:\n|講題|主題|小組|旨意)/i);
+            const scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請填寫）";
+            
+            // 抓取問題：從「1.」開始到停止字為止
+            const questions = extractDynamicQuestions(fullText);
+
+            document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組分享問題：\n${questions}`;
+            document.getElementById('uploadText').innerText = "✅ " + file.name + " 讀取成功！";
             processData();
         } catch (e) {
-            console.error(e);
-            alert("PDF 處理出錯，請手動複製文字。");
+            alert("PDF 讀取出錯，請手動貼上文字。");
             document.getElementById('uploadText').innerText = "❌ 讀取失敗";
         }
     }
 
-    function extractQuestionsFromPdf(text) {
-        const startIdx = text.indexOf("小組進深分享問題");
-        if (startIdx === -1) return "1.\n2.\n3.\n4.\n5.";
-
-        const subText = text.substring(startIdx);
-        // 尋找 1. ... 2. ... 3. ... 4. ... 5. ... 直到出現報告或版權資訊
-        const match = subText.match(/1\..*?2\..*?3\..*?4\..*?5\..*?(?=\n\n|會務報告|報告|Newer|Older|Copyright|南卡城)/s);
+    function extractDynamicQuestions(text) {
+        const startIdx = text.indexOf("1.");
+        if (startIdx === -1) return "1.\n2.\n3.\n4.";
         
-        if (match) {
-            // 整理格式，確保編號換行清晰
-            return match[0].replace(/(\d\.)/g, "\n$1").replace(/\s+/g, " ").replace(/\n\s/g, "\n").trim();
+        let res = text.substring(startIdx).trim();
+        const stopKeywords = ["Newer Post", "Older Post", "SOUTH CALGARY", "Service Times", "職位空缺", "會務報告", "崇拜程序"];
+        
+        let endIdx = res.length;
+        for (let s of stopKeywords) {
+            let si = res.indexOf(s);
+            if (si !== -1 && si < endIdx) endIdx = si;
         }
-        return "1.\n2.\n3.\n4.\n5. (請檢查 PDF 文字內容)";
+        
+        // 格式化：喺數字前面加換行，確保靚仔
+        return res.substring(0, endIdx).replace(/(\d\.)/g, "\n$1").replace(/\n+/g, "\n").trim();
     }
 
     function processData() {
@@ -118,63 +109,49 @@
         const manualYT = document.getElementById('manualYoutube').value.trim();
         if (!input) return;
 
-        const title = extractValue(input, /講題[：|:](.*?)\n/i) || "今日講道";
-        const scripture = extractValue(input, /經文[：|:](.*?)\n/i) || "請參閱程序表";
-        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
-        const questions = input.split("小組進深分享問題：")[1]?.trim() || "（請手動填入問題）";
+        const title = input.match(/講題[：|:](.*?)\n/)?.[1].trim() || "今日講道";
+        const scripture = input.match(/經文[：|:](.*?)\n/)?.[1].trim() || "請參閱程序表";
+        const youtube = manualYT || "（請手動加入連結）";
+        const questions = input.split("小組分享問題：")[1]?.trim() || "（未偵測到問題）";
         const dates = calculateDates();
 
-        // 1. WhatsApp 訊息 (自動過濾 Newer Post 等雜訊)
-        const waMsg = `Adult Pastoral Zone T1 cell group meeting
-Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri} (每個月的第二和第四個星期五)
+        // WhatsApp 格式化 (加入粗體 *符號)
+        const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
+Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri}
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
 ${youtube}
 
-講題：${title}
-經文：${scripture}
+*講題：*${title}
+*經文：*${scripture}
 
-小組分享問題：
+*小組分享問題：*
 ${questions}`;
 
-        // 2. AI 簡報指令 (整合清新配色、禁令與七大研經架構)
+        // AI 指令格式化
         const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據提供內容規劃 PPT。
 
-### ⛔ 內容禁令 (必須嚴格執行)：
-1. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」或任何宣道會。
-2. **禁止雜訊**：除題目外，禁止在投影片添加任何額外的屬靈口號、勵志語句或不知名的裝飾文字。
-3. **禁止亂改問題**：小組討論問題必須【完全一字不漏】搬運，不准加額外解釋，每一題獨立佔一頁。
+### ⛔ 內容禁令 (嚴格執行)：
+1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」。
+2. 除題目外，禁止在投影片添加任何額外的裝飾性口號或雜訊。
+3. 小組討論問題必須【完全一字不漏】搬運，每一題獨立佔一頁。
 
-### 🎨 排版與視覺要求：
-- **視覺風格**：清新、簡潔、對稱。背景限用淺色系（米白/淡藍）。
-- **排版命令**：所有標題與內文必須「水平與垂直居中」。
-- **配圖要求**：每頁提供一個高清、具歷史深度或靈修默想感的圖片描述，圖片與文字需清晰區隔。
+### 🎨 排版要求：清新、明亮。背景淺色，標題與內文必須「水平與垂直居中」。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
 2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】，嚴禁摘要。
-3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體置中。
-4. **研經背景答案 (專業要求)**：
-    請用中文（繁體）並以正統基督教信仰和聖經真理為基礎，提供以下章節內容：
-    - 【經文概要】概述此章內容與主要事件。
-    - 【經文解釋】詳細闡述該節的含義。
-    - 【神學重點】指出核心神學信息、救恩啟示及屬靈信息。
-    - 【歷史文化背景】補充與理解本章相關的背景資料。
-    - 【引用】列出其他聖經相關經文，並說明其關聯。
-    - 【屬靈應用】提供如何將此章的信息應用於信徒生活。
-    - 【默想與反思問題】提出2-3個引導思考與靈修的問題。
+3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體要大且置中。
+4. **專業研經背景**：提供經文概要、解釋、神學重點、歷史背景、引用、應用、及2-3個反思問題。
 
-以下是內容：
+內容：
 ${input}`;
 
         document.getElementById('waOutput').innerText = waMsg;
         document.getElementById('aiOutput').innerText = aiPrompt;
         ['waOutput', 'aiOutput', 'waTitle', 'aiTitle', 'copyWaBtn', 'copyAiBtn'].forEach(id => document.getElementById(id).style.display = 'block');
     }
-
-    function extractValue(t, r) { const m = t.match(r); return m ? m[1].trim() : null; }
-    function extractYoutube(t) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = t.match(r); return m ? m[0] : null; }
 
     function calculateDates() {
         const d = new Date();
@@ -190,7 +167,7 @@ ${input}`;
 
     function copyToGemini() {
         navigator.clipboard.writeText(document.getElementById('aiOutput').innerText).then(() => {
-            alert("指令已複製！現在將打開 AI。");
+            alert("✅ 指令已複製！請前往 Gemini 貼上。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
