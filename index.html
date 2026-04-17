@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V9.4</title>
+    <title>SCCEFC 組長助手 V9.5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
@@ -26,14 +26,14 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (Calgary, AB)</div>
-    <h1>組長全能助手 V9.4</h1>
+    <h1>組長全能助手 V9.5</h1>
 
     <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
-        <p id="uploadText">📄 點擊上傳 PDF (自動提取講題/經文/問題)</p>
+        <p id="uploadText">📄 點擊上傳 PDF (自動過濾雜訊)</p>
         <input type="file" id="pdfFile" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)">
     </div>
 
-    <span class="input-title">內容核對 (已自動剔除程序及報告雜訊)</span>
+    <span class="input-title">內容核對 (已強制切除「信息造就」及「會務報告」)</span>
     <textarea id="rawInput" rows="8"></textarea>
     
     <span class="input-title">YouTube 連結 (選填)</span>
@@ -41,7 +41,7 @@
 
     <button class="btn-gen" onclick="processData()">🚀 生成純淨版 WhatsApp 與 AI 指令</button>
 
-    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息 (已剔除雜訊)</div>
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
@@ -56,7 +56,7 @@
     async function handlePdfUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        document.getElementById('uploadText').innerText = "⏳ 正在過濾雜訊並分析 PDF...";
+        document.getElementById('uploadText').innerText = "⏳ 正在執行精確提取手術...";
         
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -68,34 +68,39 @@
                 fullText += content.items.map(item => item.str).join(" ") + "\n";
             }
 
-            // --- 講題與經文提取 (精準切斷) ---
-            const titleMatch = fullText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|旨意|信息|回應)/i);
-            const title = titleMatch ? titleMatch[1].trim() : "（請填寫）";
+            // --- 講題提取 ---
+            const titleMatch = fullText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|回應)/i);
+            const title = titleMatch ? titleMatch[1].trim() : "（請檢查）";
             
-            const scriptureMatch = fullText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?:\n|講題|主題|小組|回應|奉獻|家事)/i);
-            const scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請填寫）";
+            // --- 經文提取 (強制剔除 信息造就) ---
+            const scriptureMatch = fullText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?:\n|講題|主題|信息造就|信息造就：|小組|回應|奉獻)/i);
+            const scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請檢查）";
             
-            // --- 問題抓取 (強力剔除頁尾報告) ---
-            const questions = extractPureQuestions(fullText);
+            // --- 問題抓取 (強制切斷 會務報告) ---
+            const questions = extractUltraPureQuestions(fullText);
 
             document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組分享問題：\n${questions}`;
-            document.getElementById('uploadText').innerText = "✅ " + file.name + " 讀取完成！";
+            document.getElementById('uploadText').innerText = "✅ " + file.name + " 提取成功！";
             processData();
         } catch (e) {
-            alert("PDF 讀取出錯，請檢查檔案。");
+            alert("PDF 讀取失敗。");
             document.getElementById('uploadText').innerText = "❌ 讀取失敗";
         }
     }
 
-    function extractPureQuestions(text) {
-        const startIdx = text.indexOf("1.");
+    function extractUltraPureQuestions(text) {
+        // 尋找「1.」或「小組進深」作為起點
+        let startIdx = text.indexOf("1.");
+        if (startIdx === -1) startIdx = text.indexOf("小組進深分享問題");
         if (startIdx === -1) return "（未偵測到問題）";
         
         let res = text.substring(startIdx).trim();
-        // 加入更廣泛的停止字名單，切斷所有報告
+        
+        // 強力停止字名單：只要見到標題即切斷
         const stopKeywords = [
-            "會務報告", "報告事項", "報告:", "報告：", "Older Post", "Newer Post", 
-            "SOUTH CALGARY", "Service Times", "職位空缺", "崇拜程序", "1. 浸禮報名", "2. 2026 暑期實習生"
+            "會務報告", "會 務 報 告", "會務 報告", "會 務報告",
+            "1. SABC", "1.SABC", "SABC", "SABC:", "報告事項",
+            "SOUTH CALGARY", "Older Post", "Newer Post", "Careers"
         ];
         
         let endIdx = res.length;
@@ -134,8 +139,8 @@ ${questions}`;
         const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據提供內容規劃 PPT。
 
 ### ⛔ 內容禁令 (嚴格執行)：
-1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」。
-2. 禁止在投影片添加任何額外的裝飾性口號、詩歌標題或家事報告。
+1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)。🚫 **絕對禁止**寫成「南加州」。
+2. 禁止添加任何裝飾性口號、詩歌或報告雜訊。
 3. 小組討論問題必須【完全一字不漏】搬運，每一題獨立佔一頁。
 
 ### 🎨 排版要求：標題與內文必須「水平與垂直居中」。
