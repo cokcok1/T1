@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V10.0</title>
+    <title>SCCEFC 組長助手 V11.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
@@ -26,14 +26,14 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (Calgary, AB)</div>
-    <h1>組長全能助手 V10.0</h1>
+    <h1>組長全能助手 V11.0</h1>
 
     <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
-        <p id="uploadText">📄 點擊上傳 PDF 程序表 (自動執行精確淨化)</p>
+        <p id="uploadText">📄 點擊上傳 PDF (地毯式清理雜訊)</p>
         <input type="file" id="pdfFile" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)">
     </div>
 
-    <span class="input-title">內容核對 (已自動剔除「信息造就」及「會務報告」雜訊)</span>
+    <span class="input-title">提取內容核對 (已切除信息造就及會務報告)</span>
     <textarea id="rawInput" rows="8"></textarea>
     
     <span class="input-title">YouTube 連結 (選填)</span>
@@ -56,7 +56,7 @@
     async function handlePdfUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        document.getElementById('uploadText').innerText = "⏳ 正在執行淨化提取手術...";
+        document.getElementById('uploadText').innerText = "⏳ 深度清理提取中...";
         
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -65,7 +65,7 @@
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                // 處理 PDF 奇怪的空格
+                // 合併文字並壓縮 PDF 的奇怪空格
                 fullText += content.items.map(item => item.str).join(" ").replace(/\s{2,}/g, ' ') + "\n";
             }
 
@@ -73,30 +73,31 @@
             const titleMatch = fullText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|回應)/i);
             const title = titleMatch ? titleMatch[1].trim() : "（請核對）";
             
-            // 2. 經文提取 (強制剔除 信息造就)
-            const scriptureMatch = fullText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?:\s*信息\s*造\s*就|信息造就|信息|講題|主題|小組|回應|奉獻)/i);
-            const scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請核對）";
+            // 2. 經文提取 (強力全字元匹配切斷)
+            const scriptureMatch = fullText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?=\s*(?:信\s*息\s*造\s*就|信息造就|信息|講題|主題|証道|小組|回應|奉獻))/i);
+            const scripture = (scriptureMatch ? scriptureMatch[1].trim() : "（請核對）").replace(/\s/g, '');
             
-            // 3. 問題抓取 (強制切斷 會務報告)
-            const questions = extractUltraCleanQuestions(fullText);
+            // 3. 問題抓取 (報告標題全面切斷)
+            const questions = extractStaticCleanQuestions(fullText);
 
             document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組分享問題：\n${questions}`;
-            document.getElementById('uploadText').innerText = "✅ " + file.name + " 淨化提取成功！";
+            document.getElementById('uploadText').innerText = "✅ 淨化提取成功！";
             processData();
         } catch (e) {
-            alert("讀取失敗，請手動複製文字。");
+            alert("讀取失敗。");
         }
     }
 
-    function extractUltraCleanQuestions(text) {
+    function extractStaticCleanQuestions(text) {
         let startIdx = text.indexOf("1.");
         if (startIdx === -1) startIdx = text.indexOf("小組進深分享問題");
         if (startIdx === -1) return "（未偵測到問題）";
         
         let res = text.substring(startIdx).trim();
+        // 加入更全面的停止字眼，防止報告滲入
         const stopKeywords = [
-            "會務報告", "會 務 報 告", "會務 報告", "1. 浸禮報名", "2. 2026 暑期實習生",
-            "1. SABC", "報告:", "報告：", "SOUTH CALGARY", "Older Post"
+            "會務報告", "會 務 報 告", "1. 受難節", "1.受難節", "2. 春季", "2.春季",
+            "1. 浸禮報名", "2. 2026", "報告事項", "會務報告", "SOUTH CALGARY", "Older Post"
         ];
         
         let endIdx = res.length;
@@ -135,11 +136,11 @@ ${questions}`;
         const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據提供內容規劃 PPT。
 
 ### ⛔ 內容禁令 (必須嚴格執行)：
-1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」。
-2. 禁止在投影片添加任何額外的裝飾性口號、詩歌標題、奉獻禱告或報告雜訊。
-3. 小組討論問題必須【完全一字不漏】搬運，不准加額外解釋。
+1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)。🚫 **絕對禁止**寫成「南加州」。
+2. 投影片除題目外嚴禁添加任何詩歌標題、奉獻禱告或報告雜訊。
+3. 小組討論問題必須【完全一字不漏】搬運。
 
-### 🎨 視覺：標題與內文必須「水平與垂直居中」，清新明亮。
+### 🎨 視覺：淺色背景，標題與內文必須「水平與垂直居中」。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
