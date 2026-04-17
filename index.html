@@ -3,153 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.1</title>
+    <title>SCCEFC 組長助手 V14.0</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
         .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 850px; }
         h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
-        textarea { background: #fffde7; }
-        .simple-input { background: #e8f0fe; }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        textarea, .url-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
+        textarea { background: #fffde7; height: 120px; }
+        .url-section { background: #e8f0fe; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #b3d1ff; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; transition: 0.2s; }
         .btn-gen { background: var(--primary); font-size: 1.1rem; }
         .btn-gen:hover { background: #123456; }
-        .btn-copy { background: var(--accent); display: none; }
-        .btn-wa { background: var(--whatsapp); display: none; }
+        .btn-fetch { background: #3498db; margin-top: 5px; }
+        .btn-fetch:hover { background: #2980b9; }
         .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
-        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; text-align: center; }
+        .loading { display: none; color: #e67e22; text-align: center; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V8.1</h1>
-    
-    <span class="input-title">第一步：貼上教會網頁全文</span>
-    <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
-    
-    <span class="input-title">第二步：YouTube 連結 (選填)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
+    <h1>組長全能助手 V14.0</h1>
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業純淨指令及 WhatsApp</button>
+    <div class="url-section">
+        <span class="input-title">輸入網頁網址 (自動抓取內容)</span>
+        <input type="text" id="targetUrl" class="url-input" placeholder="貼上 sccefc.ca/cn/sermon-upload/... 的網址">
+        <button class="btn-fetch" onclick="fetchContent()">🔍 讀取網頁資料</button>
+    </div>
+
+    <div id="loadingMsg" class="loading">⏳ 正在連線讀取網頁內容...</div>
+
+    <span class="input-title">內容核對 (自動提取後可手動微調)</span>
+    <textarea id="rawInput" placeholder="或者手動貼上網頁全文..."></textarea>
+    
+    <button class="btn-gen" onclick="processData()">🚀 生成 WhatsApp 與 AI 簡報指令</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
-    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
+    <button id="copyWaBtn" style="background:var(--whatsapp); display:none;" onclick="copyText('waOutput')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版加強版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令</div>
     <div id="aiOutput" class="output-box"></div>
-    <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
+    <button id="copyAiBtn" style="background:var(--accent); display:none;" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
 
 <script>
+    // --- 網址讀取邏輯 ---
+    async function fetchContent() {
+        const url = document.getElementById('targetUrl').value.trim();
+        if (!url) { alert("請先貼上網址"); return; }
+        
+        const loading = document.getElementById('loadingMsg');
+        const inputArea = document.getElementById('rawInput');
+        loading.style.display = "block";
+        
+        try {
+            // 使用公開代理避開跨域限制
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            const html = await response.text();
+            
+            // 建立虛擬 DOM 解析內容
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // 提取主要文字內容
+            const mainContent = doc.querySelector('main') || doc.querySelector('article') || doc.body;
+            inputArea.value = mainContent.innerText.trim();
+            
+            loading.style.display = "none";
+            alert("✅ 資料抓取成功，請核對下方文字區！");
+            
+            // 自動進入處理程序
+            processData();
+            
+        } catch (e) {
+            loading.style.display = "none";
+            alert("❌ 無法抓取網頁。請確認網址正確，或改用 Ctrl+A 手動貼上全文。");
+        }
+    }
+
+    // --- 核心處理邏輯 ---
     function processData() {
         const input = document.getElementById('rawInput').value;
-        const manualYT = document.getElementById('manualYoutube').value.trim();
-        if (!input) { alert("請先貼上內容！"); return; }
+        if (!input) { alert("內容為空，請輸入資料"); return; }
 
-        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || extractInfo(input, /Sermon Title[：|:](.*?)\n/i) || "今日講道";
-        const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || extractInfo(input, /Scripture[：|:](.*?)\n/i) || "請參閱網頁";
-        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
+        const title = input.match(/(?:講題|主題|證道主題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|旨意)/i)?.[1].trim() || "今日講道";
+        const scripture = input.match(/(?:經文|Scripture)[：|: ]\s*([^\n\r]*?)(?:\n|講題|主題|小組|回應|奉獻)/i)?.[1].trim() || "請核對網頁";
         const questions = extractQuestions(input);
-        const dates = calculateMeetingDates();
+        const dates = calculateDates();
 
-        const waMsg = `Adult Pastoral Zone T1 cell group meeting
-Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
+        const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
+Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri}
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
-${youtube}
+*講題：*${title}
+*經文：*${scripture}
 
-講題：${title}
-經文：${scriptureRef}
-
-小組分享問題：
+*小組分享問題：*
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
-
-### ⛔ 內容禁令 (必須嚴格執行)：
-1. **禁止幻覺**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」或任何宣道會。
-2. **禁止雜訊**：除題目外，禁止在投影片添加任何額外的屬靈口號、勵志語句或不知名的裝飾文字。
-3. **禁止亂改問題**：小組討論問題必須【完全一字不漏】搬運，不准加 Bullet points 或解釋。
-
-### 🎨 排版與設計要求：
-- **視覺風格**：清新、簡潔、對稱。背景限用「淺米白」或「極淡藍」。
-- **排版命令**：所有標題與內文必須「水平與垂直居中」，文字長度需適中，避免尷尬斷行。
-- **配圖要求**：為每一頁提供一個高清、具歷史深度或靈修默想感的圖片描述，圖片需與文字有清晰區隔，不可重疊影響閱讀。
-
-### 📅 簡報結構：
-1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
-2. **Slide 2 今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，不准摘要。
-3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體要大且置中。
-4. **研經背景答案**：最後部分請提供請提供：
-    - 【經文概要】概述此章內容與主要事件。
-    - 【經文解釋】詳細闡述該節的含義。
-    - 【神學重點】指出核心神學信息、救恩啟示及屬靈信息。
-    - 【歷史文化背景】補充與理解本章相關的背景資料。
-    - 【引用】列出其他聖經相關經文，並說明其關聯。
-    - 【屬靈應用】提供如何將此章的信息應用於信徒生活。
-    - 【默想與反思問題】提出2-3個引導思考與靈修的問題。
-
-以下是網頁內容：
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 設計師。請根據提供內容規劃 PPT。
+### ⛔ 強制禁令：
+1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)。🚫禁止寫成南加州。
+2. 小組分享問題必須【完全一字不漏】搬運，不准加額外解釋。
+### 🎨 視覺：淺色背景，文字水平及垂直居中。
+### 📅 結構：封面 -> 今日經文全文 -> 小組討論問題 -> 專業研經背景補充。
+內容：
 ${input}`;
 
-        showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
-        showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
-        document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
+        display('waOutput', waMsg, 'waTitle', 'copyWaBtn');
+        display('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
     }
 
-    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
-    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
-
     function extractQuestions(text) {
-        const kw = ["討論問題", "小組分享問題", "小組問題", "討論題目", "小組進深分享問題"];
-        let startIdx = -1;
-        let matchedKw = "";
-        for (let k of kw) {
-            let idx = text.indexOf(k);
-            if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; }
-        }
-        if (startIdx === -1) { const m = text.match(/\n\s*1\.\s/); if(m) startIdx = m.index; }
-        if (startIdx === -1) return "（未能偵測問題）";
+        const marker = text.match(/小\s*組\s*分享\s*(?:題目|問題)/i);
+        if (!marker) return "（未偵測到問題，請手動核對）";
         
-        let res = text.substring(startIdx + matchedKw.length).trim();
+        let res = text.substring(text.indexOf(marker[0]) + marker[0].length).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
 
-        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "OFFICE@SCCEFC.CA", "Google Calendar", "Service Times", "職位空缺", "📋"];
+        // 強力切斷雜訊
+        const stopKeywords = ["Newer Post", "Older Post", "會務報告", "South Calgary Chinese", "Office:"];
         let endIdx = res.length;
-        for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
+        for (let s of stopKeywords) {
+            let si = res.indexOf(s);
+            if (si !== -1 && si < endIdx) endIdx = si;
+        }
         return res.substring(0, endIdx).trim();
     }
 
-    function calculateMeetingDates() {
+    function calculateDates() {
         const d = new Date();
         const f = new Date(d); f.setDate(d.getDate() + (5 - d.getDay() + 7) % 7);
-        const opt = { month: 'short', day: 'numeric', year: 'numeric' };
         const n = new Date(f); n.setDate(f.getDate() + 14);
-        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
+        const opt = { month: 'short', day: 'numeric', year: 'numeric' };
+        return { thisFri: f.toLocaleDateString('en-US', opt), nextFri: n.toLocaleDateString('en-US', opt) };
     }
 
-    function showResult(id, content, titleId, btnId) {
-        document.getElementById(id).innerText = content;
-        document.getElementById(id).style.display = "block";
-        document.getElementById(titleId).style.display = "block";
-        document.getElementById(btnId).style.display = "block";
+    function display(id, c, t, b) {
+        const el = document.getElementById(id);
+        el.innerText = c; el.style.display = "block";
+        document.getElementById(t).style.display = "block";
+        document.getElementById(b).style.display = "block";
     }
 
-    function copyContent(id, msg) {
-        navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => alert(msg));
+    function copyText(id) {
+        navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => alert("✅ 已複製"));
     }
 
     function copyToGemini() {
-        const text = document.getElementById('aiOutput').innerText;
-        navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！\n現在將打開 AI 視窗。");
+        navigator.clipboard.writeText(document.getElementById('aiOutput').innerText).then(() => {
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
