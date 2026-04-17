@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V14.0</title>
+    <title>SCCEFC 組長助手 V15.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
@@ -13,8 +13,7 @@
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         textarea { background: #fffde7; line-height: 1.5; }
-        .upload-section { border: 2px dashed #1a4a7c; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 20px; background: #eef4f9; cursor: pointer; transition: 0.3s; }
-        .upload-section:hover { background: #e1ebf5; border-color: var(--accent); }
+        .upload-section { border: 2px dashed #1a4a7c; padding: 25px; text-align: center; border-radius: 8px; margin-bottom: 20px; background: #eef4f9; cursor: pointer; }
         button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
         .btn-gen { background: var(--primary); }
         .btn-wa { background: var(--whatsapp); display: none; }
@@ -26,19 +25,19 @@
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V14.0</h1>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (Calgary, AB)</div>
+    <h1>組長全能助手 V15.0</h1>
 
     <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
-        <p id="uploadText">📄 點擊或拖放 PDF 程序表 (自動執行萬能切斷)</p>
+        <p id="uploadText">📄 點擊上傳 PDF 程序表 (自動執行淨化提取)</p>
         <input type="file" id="pdfFile" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)">
     </div>
 
-    <span class="input-title">核對內容 (已自動切除「會務報告」及「信息造就」)</span>
-    <textarea id="rawInput" rows="8"></textarea>
+    <span class="input-title">內容核對 (會務報告以後的內容已自動刪除)</span>
+    <textarea id="rawInput" rows="10" placeholder="提取結果將在此顯示..."></textarea>
     
     <span class="input-title">YouTube 連結 (選填)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="貼上本週 YouTube 連結...">
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="貼上影片連結...">
 
     <button class="btn-gen" onclick="processData()">🚀 生成淨化版 WhatsApp 與 AI 指令</button>
 
@@ -57,7 +56,7 @@
     async function handlePdfUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        document.getElementById('uploadText').innerText = "⏳ 深度淨化提取中...";
+        document.getElementById('uploadText').innerText = "⏳ 執行深度淨化提取手術...";
         
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -69,27 +68,30 @@
                 fullText += content.items.map(item => item.str).join(" ").replace(/\s{2,}/g, ' ') + "\n";
             }
 
-            // --- 核心優化 1：萬能標題切斷術 (匹配帶空格的會務報告) ---
-            const reportMarker = fullText.match(/會\s*務\s*報\s*告/i);
-            const pureText = reportMarker ? fullText.substring(0, reportMarker.index) : fullText;
+            // 1. 強力切斷「會務報告」 (處理 PDF 特殊空格)
+            const reportMatch = fullText.match(/會\s*務\s*報\s*告/);
+            const pureText = reportMatch ? fullText.substring(0, reportMatch.index) : fullText;
 
-            // --- 核心優化 2：提取講題 (自動清理引號) ---
-            const titleMatch = pureText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|回應|旨意)/i);
+            // 2. 提取講題
+            const titleMatch = pureText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|回應)/i);
             const title = titleMatch ? titleMatch[1].trim() : "（請核對）";
             
-            // --- 核心優化 3：提取經文 (徹底排除信息造就) ---
+            // 3. 提取經文 (強制剔除信息造就，並處理空格)
             const scriptureMatch = pureText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?=\s*(?:信\s*息\s*造\s*就|信息造就|信息|講題|主題|証道|小組|回應))/i);
             let scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請核對）";
-            scripture = scripture.replace(/\s/g, ''); // 移除 1 1 : 1 9 這種空格
+            scripture = scripture.replace(/\s/g, ''); 
 
-            // --- 核心優化 4：動態提取問題 (僅限會務報告前) ---
-            const qStartRegex = /小\s*組\s*(?:進\s*深\s*)?分\s*享\s*問\s*題/i;
-            const qStartMatch = pureText.match(qStartRegex);
+            // 4. 動態提取問題 (優化：由標題抓取直到切斷點)
+            const qHeaderRegex = /小\s*組\s*(?:進\s*深\s*)?分\s*享\s*問\s*題/i;
+            const qHeaderMatch = pureText.match(qHeaderRegex);
             let qContent = "（未偵測到問題）";
-            if (qStartMatch) {
-                const afterQHeader = pureText.substring(qStartMatch.index + qStartMatch[0].length);
-                const firstDigit = afterQHeader.indexOf("1.");
-                qContent = firstDigit !== -1 ? afterQHeader.substring(firstDigit).trim() : afterQHeader.trim();
+            
+            if (qHeaderMatch) {
+                // 攞標題之後直到 pureText 結尾 (即係會務報告之前) 嘅所有嘢
+                let rawQ = pureText.substring(qHeaderMatch.index + qHeaderMatch[0].length).trim();
+                // 剔除中間可能重複出現嘅講題同經文標籤
+                rawQ = rawQ.replace(/(?:證道主題|証道主題|講題|經文)[：|: ].*?\n/gi, "");
+                qContent = rawQ.replace(/(\d\.)/g, "\n$1").trim();
             }
 
             document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組分享問題：\n${qContent}`;
@@ -111,7 +113,6 @@
         const questions = input.split("小組分享問題：")[1]?.trim() || "（未偵測到問題）";
         const dates = calculateDates();
 
-        // WhatsApp 格式化
         const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
 Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri}
 Time: 5:45 pm - 7:30 pm
@@ -125,15 +126,14 @@ ${youtube}
 *小組分享問題：*
 ${questions}`;
 
-        // AI 指令 (專業研經要求)
         const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據提供內容規劃 PPT。
 
-### ⛔ 內容禁令 (必須執行)：
+### ⛔ 內容禁令 (嚴格執行)：
 1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)。🚫 **絕對禁止**寫成「南加州」。
-2. 投影片嚴禁出現任何會務報告、崇拜程序或家事分享雜訊。
+2. 投影片嚴禁出現任何會務報告、詩歌程序或奉獻雜訊。
 3. 小組討論問題必須【完全一字不漏】搬運，每一題獨立佔一頁。
 
-### 🎨 視覺要求：清新明亮，文字居中。
+### 🎨 視覺要求：淺色背景，文字水平及垂直居中。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
@@ -163,10 +163,7 @@ ${input}`;
     }
 
     function copyToGemini() {
-        const text = document.getElementById('aiOutput').innerText;
-        navigator.clipboard.writeText(text).then(() => {
-            window.open("https://gemini.google.com/app", "_blank");
-        });
+        window.open("https://gemini.google.com/app", "_blank");
     }
 </script>
 </body>
