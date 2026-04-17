@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長助手 V15.0</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <title>SCCEFC 組長全能助手 V8.1</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -12,150 +11,136 @@
         h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin-bottom: 20px; }
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
-        textarea { background: #fffde7; line-height: 1.5; }
-        .upload-section { border: 2px dashed #1a4a7c; padding: 25px; text-align: center; border-radius: 8px; margin-bottom: 20px; background: #eef4f9; cursor: pointer; }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
-        .btn-gen { background: var(--primary); }
-        .btn-wa { background: var(--whatsapp); display: none; }
+        textarea { background: #fffde7; }
+        .simple-input { background: #e8f0fe; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); font-size: 1.1rem; }
+        .btn-gen:hover { background: #123456; }
         .btn-copy { background: var(--accent); display: none; }
-        .output-box { width: 100%; height: 350px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
+        .btn-wa { background: var(--whatsapp); display: none; }
+        .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
+        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (Calgary, AB)</div>
-    <h1>組長全能助手 V15.0</h1>
-
-    <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
-        <p id="uploadText">📄 點擊上傳 PDF 程序表 (自動執行淨化提取)</p>
-        <input type="file" id="pdfFile" accept=".pdf" style="display:none" onchange="handlePdfUpload(event)">
-    </div>
-
-    <span class="input-title">內容核對 (會務報告以後的內容已自動刪除)</span>
-    <textarea id="rawInput" rows="10" placeholder="提取結果將在此顯示..."></textarea>
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
+    <h1>組長全能助手 V8.1</h1>
+    <p class="hint"> V8.1 更新：強力排版校對 + 糾正地理錯誤 </p>
     
-    <span class="input-title">YouTube 連結 (選填)</span>
-    <input type="text" id="manualYoutube" class="simple-input" placeholder="貼上影片連結...">
+    <span class="input-title">第一步：貼上教會網頁全文</span>
+    <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
+    
+    <span class="input-title">第二步：YouTube 連結 (選填)</span>
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">🚀 生成淨化版 WhatsApp 與 AI 指令</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業純淨指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版加強版)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
 
 <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-    async function handlePdfUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        document.getElementById('uploadText').innerText = "⏳ 執行深度淨化提取手術...";
-        
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            let fullText = "";
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                fullText += content.items.map(item => item.str).join(" ").replace(/\s{2,}/g, ' ') + "\n";
-            }
-
-            // 1. 強力切斷「會務報告」 (處理 PDF 特殊空格)
-            const reportMatch = fullText.match(/會\s*務\s*報\s*告/);
-            const pureText = reportMatch ? fullText.substring(0, reportMatch.index) : fullText;
-
-            // 2. 提取講題
-            const titleMatch = pureText.match(/(?:證道主題|証道主題|講題)[：|: ]\s*「?(.*?)」?(?:\n|經文|信息|回應)/i);
-            const title = titleMatch ? titleMatch[1].trim() : "（請核對）";
-            
-            // 3. 提取經文 (強制剔除信息造就，並處理空格)
-            const scriptureMatch = pureText.match(/(?:信息經文|經文)[：|: ]\s*([^\n\r]*?)(?=\s*(?:信\s*息\s*造\s*就|信息造就|信息|講題|主題|証道|小組|回應))/i);
-            let scripture = scriptureMatch ? scriptureMatch[1].trim() : "（請核對）";
-            scripture = scripture.replace(/\s/g, ''); 
-
-            // 4. 動態提取問題 (優化：由標題抓取直到切斷點)
-            const qHeaderRegex = /小\s*組\s*(?:進\s*深\s*)?分\s*享\s*問\s*題/i;
-            const qHeaderMatch = pureText.match(qHeaderRegex);
-            let qContent = "（未偵測到問題）";
-            
-            if (qHeaderMatch) {
-                // 攞標題之後直到 pureText 結尾 (即係會務報告之前) 嘅所有嘢
-                let rawQ = pureText.substring(qHeaderMatch.index + qHeaderMatch[0].length).trim();
-                // 剔除中間可能重複出現嘅講題同經文標籤
-                rawQ = rawQ.replace(/(?:證道主題|証道主題|講題|經文)[：|: ].*?\n/gi, "");
-                qContent = rawQ.replace(/(\d\.)/g, "\n$1").trim();
-            }
-
-            document.getElementById('rawInput').value = `講題：${title}\n經文：${scripture}\n\n小組分享問題：\n${qContent}`;
-            document.getElementById('uploadText').innerText = "✅ 提取完成！雜訊已清除。";
-            processData();
-        } catch (e) {
-            alert("讀取失敗，請重試。");
-        }
-    }
-
     function processData() {
         const input = document.getElementById('rawInput').value;
         const manualYT = document.getElementById('manualYoutube').value.trim();
-        if (!input) return;
+        if (!input) { alert("請先貼上內容！"); return; }
 
-        const title = input.match(/講題[：|:](.*?)\n/)?.[1].trim() || "今日講道";
-        const scripture = input.match(/經文[：|:](.*?)\n/)?.[1].trim() || "請參閱程序表";
-        const youtube = manualYT || "（請手動加入連結）";
-        const questions = input.split("小組分享問題：")[1]?.trim() || "（未偵測到問題）";
-        const dates = calculateDates();
+        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || extractInfo(input, /Sermon Title[：|:](.*?)\n/i) || "今日講道";
+        const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || extractInfo(input, /Scripture[：|:](.*?)\n/i) || "請參閱網頁";
+        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
+        const questions = extractQuestions(input);
+        const dates = calculateMeetingDates();
 
-        const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
-Date: ${dates.thisFri} (this Friday); our next meeting: ${dates.nextFri}
+        const waMsg = `Adult Pastoral Zone T1 cell group meeting
+Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
 ${youtube}
 
-*講題：*${title}
-*經文：*${scripture}
+講題：${title}
+經文：${scriptureRef}
 
-*小組分享問題：*
+小組分享問題：
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據提供內容規劃 PPT。
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
 
-### ⛔ 內容禁令 (嚴格執行)：
-1. SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)。🚫 **絕對禁止**寫成「南加州」。
-2. 投影片嚴禁出現任何會務報告、詩歌程序或奉獻雜訊。
-3. 小組討論問題必須【完全一字不漏】搬運，每一題獨立佔一頁。
+### ⛔ 內容禁令 (必須嚴格執行)：
+1. **禁止幻覺**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」或任何宣道會。
+2. **禁止雜訊**：除題目外，禁止在投影片添加任何額外的屬靈口號、勵志語句或不知名的裝飾文字。
+3. **禁止亂改問題**：小組討論問題必須【完全一字不漏】搬運，不准加 Bullet points 或解釋。
 
-### 🎨 視覺要求：淺色背景，文字水平及垂直居中。
+### 🎨 排版與設計要求：
+- **視覺風格**：清新、簡潔、對稱。背景限用「淺米白」或「極淡藍」。
+- **排版命令**：所有標題與內文必須「水平與垂直居中」，文字長度需適中，避免尷尬斷行。
+- **配圖要求**：為每一頁提供一個高清、具歷史深度或靈修默想感的圖片描述，圖片需與文字有清晰區隔，不可重疊影響閱讀。
 
 ### 📅 簡報結構：
-1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
-2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】。
-3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字。
-4. **最後部分：研經背景補充**：
-    請提供【經文概要】、【經文解釋】、【神學重點】、【歷史文化背景】、【引用】、【屬靈應用】、【默想與反思問題】。
+1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
+2. **Slide 2 今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，不准摘要。
+3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體要大且置中。
+4. **研經背景答案**：最後部分用中文（繁體）並以正統基督教信仰和聖經真理為基礎 請提供：
+- 【經文概要】概述此章內容與主要事件。
+- 【經文解釋】詳細闡述該節的含義。
+- 【神學重點】指出核心神學信息、救恩啟示及屬靈信息。
+- 【歷史文化背景】補充與理解本章相關的背景資料。
+- 【引用】列出其他聖經相關經文，並說明其關聯。
+- 【屬靈應用】提供如何將此章的信息應用於信徒生活。
+- 【默想與反思問題】提出2-3個引導思考與靈修的問題。
 
-內容：
+以下是網頁內容：
 ${input}`;
 
-        document.getElementById('waOutput').innerText = waMsg;
-        document.getElementById('aiOutput').innerText = aiPrompt;
-        ['waOutput', 'aiOutput', 'waTitle', 'aiTitle', 'copyWaBtn', 'copyAiBtn'].forEach(id => document.getElementById(id).style.display = 'block');
+        showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
+        showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
+        document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function calculateDates() {
+    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
+    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
+
+    function extractQuestions(text) {
+        const kw = ["討論問題", "小組分享問題", "小組問題", "討論題目", "小組進深分享問題"];
+        let startIdx = -1;
+        let matchedKw = "";
+        for (let k of kw) {
+            let idx = text.indexOf(k);
+            if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; }
+        }
+        if (startIdx === -1) { const m = text.match(/\n\s*1\.\s/); if(m) startIdx = m.index; }
+        if (startIdx === -1) return "（未能偵測問題）";
+        
+        let res = text.substring(startIdx + matchedKw.length).trim();
+        if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
+
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "OFFICE@SCCEFC.CA", "Google Calendar", "Service Times", "職位空缺", "📋"];
+        let endIdx = res.length;
+        for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
+        return res.substring(0, endIdx).trim();
+    }
+
+    function calculateMeetingDates() {
         const d = new Date();
         const f = new Date(d); f.setDate(d.getDate() + (5 - d.getDay() + 7) % 7);
-        const n = new Date(f); n.setDate(f.getDate() + 14);
         const opt = { month: 'short', day: 'numeric', year: 'numeric' };
-        return { thisFri: f.toLocaleDateString('en-US', opt), nextFri: n.toLocaleDateString('en-US', opt) };
+        const n = new Date(f); n.setDate(f.getDate() + 14);
+        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
+    }
+
+    function showResult(id, content, titleId, btnId) {
+        document.getElementById(id).innerText = content;
+        document.getElementById(id).style.display = "block";
+        document.getElementById(titleId).style.display = "block";
+        document.getElementById(btnId).style.display = "block";
     }
 
     function copyContent(id, msg) {
@@ -163,8 +148,13 @@ ${input}`;
     }
 
     function copyToGemini() {
-        window.open("https://gemini.google.com/app", "_blank");
+        const text = document.getElementById('aiOutput').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ 指令已複製！\n現在將打開 AI 視窗。");
+            window.open("https://gemini.google.com/app", "_blank");
+        });
     }
 </script>
+
 </body>
 </html>
