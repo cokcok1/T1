@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.3.1</title>
+    <title>SCCEFC 組長全能助手 V8.4</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -12,7 +12,6 @@
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         textarea { background: #fffde7; }
-        .simple-input { background: #e8f0fe; }
         button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
         .btn-gen { background: var(--primary); font-size: 1.1rem; }
         .btn-gen:hover { background: #123456; }
@@ -26,21 +25,21 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V8.3.1</h1>
+    <h1>組長全能助手 V8.4</h1>
     
-    <span class="input-title">第一步：貼上教會網頁全文</span>
+    <span class="input-title">第一步：貼上網頁全選文字</span>
     <textarea id="rawInput" rows="5" placeholder="全選網頁文字並在此貼上..."></textarea>
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 生成修正版指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版邊距修正版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (已禁絕贅餘頁面)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -49,46 +48,44 @@
     function processData() {
         const input = document.getElementById('rawInput').value;
         const manualYT = document.getElementById('manualYoutube').value.trim();
-        if (!input) { alert("請先貼上內容！"); return; }
+        if (!input) { alert("請貼上文字！"); return; }
 
-        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || extractInfo(input, /Sermon Title[：|:](.*?)\n/i) || "今日講道";
-        const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || extractInfo(input, /Scripture[：|:](.*?)\n/i) || "請參閱網頁";
-        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
+        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "今日講道";
+        const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || "請參閱網頁";
+        const youtube = manualYT || extractYoutube(input) || "（請加入連結）";
         const questions = extractQuestions(input);
         const dates = calculateMeetingDates();
 
-        const waMsg = `Adult Pastoral Zone T1 cell group meeting
+        const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
 Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting}
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
 ${youtube}
 
-講題：${title}
-經文：${scriptureRef}
+*講題：*${title}
+*經文：*${scriptureRef}
 
-小組分享問題：
+*小組分享問題：*
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請規劃 PPT 內容。
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請規劃 PPT。
 
-### ⛔ 檔案命名與內容禁令 (必須嚴格執行)：
-1. **檔案名稱**：必須僅為【${title}】，嚴禁任何額外字眼。
-2. **禁止 Image Sources 頁面**：🚫 **絕對禁止**生成「Image Sources」或任何列出圖片網址的頁面，組員不需要這些資訊。
-3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。
-4. **禁止雜訊**：嚴禁在投影片添加任何不知名的裝飾文字。
+### ⛔ 檔案命名與贅餘禁令 (嚴格執行)：
+1. **檔案名稱**：必須僅為【${title}】，🚫 **禁止**加任何額外文字。
+2. **禁止贅餘最後一頁**：🚫 **絕對禁止**生成「謝謝觀看」、「總結」、「Image Sources」或任何類似的結語頁面。簡報必須以「默想與反思問題」作為最後一頁結束。
+3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。🚫 **禁止**寫成「南加州」。
 
-### 🎨 版面安全與視覺要求：
-- **安全邊距 (Critical)**：所有標題與內容必須距離投影片邊緣至少 **10%** 距離。🚫 **嚴禁**標題太貼頂部，避免螢幕切斷文字。
-- **對齊方式**：所有標題與內文必須「水平與垂直居中」。
-- **經文頁面**：必須列出 (${scriptureRef}) 的聖經全文。若字數較多，請自動縮小字體或分成多頁，確保文字不超出頁面。
-- **風格**：清新、簡潔。背景限用「淺米白」或「極淡藍」。
+### 🎨 版面安全要求：
+- **安全邊距**：標題與內文必須與邊緣保留 **10%** 空間，標題下移，確保不被螢幕切斷。
+- **居中排版**：所有標題與內文必須「水平與垂直居中」。
+- **風格**：清新、簡潔。背景限用米白或淡藍。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
-2. **Slide 2 今日經文**：原文全文，需注意邊距。
-3. **小組討論問題**：每一題獨立一頁，頁面只有原問題文字。
-4. **聲明頁**：在研經背景前，獨立一頁顯示：「以下資料以正統基督教信仰和聖經真理為基礎，由AI 解釋聖經，內容只供參考。」
+2. **Slide 2 今日經文**：原文全文，需注意字體大小與邊距。
+3. **小組討論問題**：每一題獨立一頁，頁面只能有原問題文字。
+4. **聲明頁 (關鍵)**：在進入研經背景前，獨立一頁顯示：「以下資料以正統基督教信仰和聖經真理為基礎，由AI 解釋聖經，內容只供參考。」
 5. **專業研經背景**：【經文概要】概述此章內容與主要事件, 【歷史文化背景】詳細闡述, 補充與理解本章相關的背景資料。
 
 內容：
@@ -110,11 +107,10 @@ ${input}`;
             let idx = text.indexOf(k);
             if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; }
         }
-        if (startIdx === -1) { const m = text.match(/\n\s*1\.\s/); if(m) startIdx = m.index; }
         if (startIdx === -1) return "（未能偵測問題）";
         let res = text.substring(startIdx + matchedKw.length).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
-        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "職位空缺"];
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times"];
         let endIdx = res.length;
         for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
         return res.substring(0, endIdx).trim();
@@ -142,7 +138,7 @@ ${input}`;
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！\n現在將打開 AI 視窗。");
+            alert("✅ 指令已複製！\n即將前往 AI 頁面。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
