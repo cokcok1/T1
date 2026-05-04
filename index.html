@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V9.0</title>
+    <title>SCCEFC 組長全能助手 V9.1</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -12,7 +12,7 @@
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         textarea { background: #fffde7; line-height: 1.5; }
-        .url-box { background: #e3f2fd; border: 2px solid #1a4a7c; font-weight: bold; }
+        .url-box { background: #e8f0fe; border: 2px solid var(--accent); }
         button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
         .btn-fetch { background: var(--accent); margin-bottom: 20px; }
         .btn-gen { background: var(--primary); font-size: 1.1rem; }
@@ -21,72 +21,76 @@
         .btn-copy { background: var(--accent); display: none; }
         .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
-        .loading { color: #d35400; font-weight: bold; display: none; text-align: center; margin-bottom: 10px; }
+        .status { font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V9.0</h1>
-    
-    <span class="input-title">輸入講道網頁網址 (自動提取)</span>
-    <input type="text" id="urlInput" class="simple-input url-box" placeholder="貼上 https://www.sccefc.ca/cn/sermon-upload/... 網址">
-    <div id="loader" class="loading">⏳ 正在努力讀取網頁內容，請稍候...</div>
-    <button class="btn-fetch" onclick="fetchSermon()">🔍 自動抓取內容</button>
+    <h1>組長全能助手 V9.1</h1>
+
+    <!-- 新增：網址抓取功能 -->
+    <span class="input-title">輸入講道網頁網址 (模擬 Ctrl+A 自動填寫)</span>
+    <input type="text" id="urlInput" class="simple-input url-box" placeholder="貼上講道網址，例如 https://www.sccefc.ca/cn/sermon-upload/...">
+    <div id="statusMsg" class="status"></div>
+    <button class="btn-fetch" onclick="fetchContent()">🔍 一鍵抓取網頁文字</button>
 
     <hr style="border: 0.5px solid #eee; margin: 20px 0;">
-
-    <span class="input-title">內容核對 (可手動修改，確保一字不漏)</span>
-    <textarea id="rawInput" rows="6" placeholder="抓取成功後，內容會自動出現在這裡..."></textarea>
     
-    <span class="input-title">YouTube 連結 (選填)</span>
+    <span class="input-title">第一步：貼上網頁全文 (包含講題、主旨、內容、問題等)</span>
+    <textarea id="rawInput" rows="6" placeholder="文字會自動出現在這裡，或手動 Ctrl+A 全選貼上..."></textarea>
+    
+    <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 生成「一字不漏」指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (原汁原味版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (V8.6 穩定核心)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
 
 <script>
-    async function fetchSermon() {
+    // 模擬 Ctrl+A 的抓取功能
+    async function fetchContent() {
         const url = document.getElementById('urlInput').value.trim();
         if (!url) { alert("請先貼上網址！"); return; }
         
-        document.getElementById('loader').style.display = "block";
-        const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+        const status = document.getElementById('statusMsg');
+        status.innerText = "⏳ 正在讀取內容...";
+        status.style.color = "#d35400";
+        status.style.display = "block";
 
         try {
+            const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
             const response = await fetch(proxyUrl);
             const data = await response.json();
             const parser = new DOMParser();
             const doc = parser.parseFromString(data.contents, "text/html");
             
-            // 提取南播網頁特定區域內容 (嘗試抓取主體內容)
-            const mainContent = doc.querySelector('.sqs-layout') || doc.body;
-            let text = mainContent.innerText || mainContent.textContent;
+            // 模擬 Ctrl+A：直接拿 body 的所有 innerText
+            const fullText = doc.body.innerText || doc.body.textContent;
             
-            // 清理多餘空白
-            text = text.replace(/\n\s*\n/g, '\n').trim();
-            
-            document.getElementById('rawInput').value = text;
-            document.getElementById('loader').innerText = "✅ 抓取成功！請檢查下方框格。";
+            document.getElementById('rawInput').value = fullText.trim();
+            status.innerText = "✅ 抓取成功！內容已填入下方格仔。";
+            status.style.color = "#25D366";
         } catch (error) {
-            alert("網址抓取失敗，請改用手動 Ctrl+A 全選貼上。原因：網頁設有防火牆或連線問題。");
-            document.getElementById('loader').style.display = "none";
+            status.innerText = "❌ 抓取失敗，請手動複製網頁文字。";
+            status.style.color = "#c0392b";
+            alert("網頁讀取受限，請回到網頁手動全選複製。");
         }
     }
 
+    // V8.6 穩定解析邏輯
     function processData() {
         const input = document.getElementById('rawInput').value;
         const manualYT = document.getElementById('manualYoutube').value.trim();
-        if (!input) { alert("請先輸入或抓取內容！"); return; }
+        if (!input) { alert("請先貼上或抓取文字！"); return; }
 
         const title = extractInfo(input, /(?:講題|證道主題|証道主題)[：|: ]\s*「?(.*?)」?(?:\n|$)/i) || "今日講道";
         const scripture = extractInfo(input, /(?:經文)[：|: ]\s*(.*?)(?:\n|$)/i) || "請參閱網頁";
@@ -108,24 +112,24 @@ ${aim ? `*主旨：*${aim}\n` : ""}
 *小組分享問題：*
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與 PPT 排版設計師。請根據我提供的內容規劃 PPT。
+        const aiPrompt = `你現在是專業的 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
 
 ### ⛔ 核心禁令 (最高準則)：
-1. **一字不漏**：所有內容（講題、主旨、內容、問題）必須【完全搬運】，🚫 禁止增刪或修改任何文字，🚫 禁止加入解釋或口號。
-2. **檔案名稱**：PowerPoint 檔案名稱必須僅為【${title}】，嚴禁加其他字。
-3. **終止點**：簡報必須以「小組討論問題」結束。🚫 禁止生成 Image Sources 或結語頁面。
-4. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。🚫 禁止寫成「南加州」。
+1. **一字不漏**：所有內容（講題、主旨、內容摘要、討論問題）必須【完全搬運】，🚫 禁止增加、刪減或修改任何文字，🚫 禁止加入任何屬靈口號或額外解釋。
+2. **檔案名稱**：PowerPoint 檔案名稱必須僅為【${title}】，嚴禁加版本號或日期。
+3. **終止點**：簡報必須以「小組討論問題」作為結束頁。🚫 絕對禁止生成結語、總結或 Image Sources 頁面。
+4. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 絕對禁止寫成「南加州」。
 
 ### 🎨 視覺與排版：
-- **安全邊距**：所有文字與邊緣保留 10% 空間，防止切斷。
+- **安全邊距**：所有文字與螢幕邊緣必須保留 10% 的空白，防止電視切斷標題。
 - **對齊**：所有標題與內文必須「水平與垂直居中」。
-- **問題頁配圖**：每一題小組問題頁，配上一張高清插圖點綴，不可遮擋文字。
+- **問題頁配圖**：每一題討論問題頁面，請根據題目意境配上一張高清插圖點綴。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
-2. **Slide 2 今日經文**：列出 (${scripture}) 的【聖經原文全文】。
+2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】。
 3. **Slide 3 證道主旨**：標題「證道主旨」，內文為【${aim}】。
-4. **Slide 4 講道內容**：標題「內容摘要」，將內容部分一字不漏搬運。
+4. **Slide 4 講道內容**：標題「內容摘要」，將【內容】部分的文字一字不漏搬運 (字多可分多頁)。
 5. **小組討論問題**：每一題獨立一頁，搬運原問題文字並配圖。
 
 內容原文：
