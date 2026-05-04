@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.5</title>
+    <title>SCCEFC 組長全能助手 V8.6</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -12,7 +12,7 @@
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         textarea { background: #fffde7; }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
         .btn-gen { background: var(--primary); }
         .btn-wa { background: var(--whatsapp); display: none; }
         .btn-copy { background: var(--accent); display: none; }
@@ -24,21 +24,21 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V8.5</h1>
+    <h1>組長全能助手 V8.6</h1>
     
-    <span class="input-title">第一步：貼上網頁全選文字</span>
+    <span class="input-title">第一步：貼上網頁全文 (包含講題、主旨、內容、問題等)</span>
     <textarea id="rawInput" rows="5" placeholder="全選網頁文字並在此貼上..."></textarea>
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 生成「一字不漏」指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (精簡配圖版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (原汁原味搬運版)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -49,12 +49,15 @@
         const manualYT = document.getElementById('manualYoutube').value.trim();
         if (!input) { alert("請貼上文字！"); return; }
 
-        const title = extractInfo(input, /講題[：|:](.*?)\n/i) || "今日講道";
-        const scriptureRef = extractInfo(input, /經文[：|:](.*?)\n/i) || "請參閱網頁";
+        // 多重關鍵字匹配
+        const title = extractInfo(input, /(?:講題|證道主題|証道主題)[：|: ]\s*「?(.*?)」?(?:\n|$)/i) || "今日講道";
+        const scripture = extractInfo(input, /(?:經文)[：|: ]\s*(.*?)(?:\n|$)/i) || "請參閱網頁";
+        const aim = extractInfo(input, /(?:主旨|證道主旨|証道主旨|旨意)[：|: ]\s*(.*?)(?:\n|$)/i) || "";
         const youtube = manualYT || extractYoutube(input) || "（請加入連結）";
         const questions = extractQuestions(input);
         const dates = calculateMeetingDates();
 
+        // WhatsApp 訊息
         const waMsg = `*Adult Pastoral Zone T1 cell group meeting*
 Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting}
 Time: 5:45 pm - 7:30 pm
@@ -63,30 +66,33 @@ Room: 201, 213
 ${youtube}
 
 *講題：*${title}
-*經文：*${scriptureRef}
-
+*經文：*${scripture}
+${aim ? `*主旨：*${aim}\n` : ""}
 *小組分享問題：*
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
+        // AI 指令 - 嚴格「一字不漏」
+        const aiPrompt = `你現在是專業的 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
 
-### ⛔ 檔案命名與內容禁令 (嚴格執行)：
-1. **檔案名稱**：必須僅為【${title}】，🚫 **絕對禁止**加任何額外文字。
-2. **終止點**：簡報必須以「小組討論問題」作為結束頁。🚫 **絕對禁止**生成聲明頁、研經背景、結語或 Image Sources 頁面。
-3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)，位於加拿大卡加利[span_4](start_span)[span_4](end_span)。🚫 **絕對禁止**寫成「南加州」。
+### ⛔ 核心禁令 (最高準則)：
+1. **一字不漏**：所有內容（講題、主旨、內容、討論問題）必須【完全搬運】，🚫 **禁止**增加、刪減或修改任何文字，🚫 **禁止**加入任何屬靈口號、勵志語句或解釋。
+2. **檔案名稱**：必須僅為【${title}】。
+3. **終止點**：簡報必須以「小組討論問題」作為結束。🚫 **嚴禁**生成結語或 Image Sources 頁面。
+4. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。🚫 **禁止**寫成「南加州」。
 
-### 🎨 版面安全與配圖要求：
-- **安全邊距**：標題與內文必須與邊緣保留 **10%** 空間，確保不被螢幕切斷。
-- **居中排版**：所有標題與內文必須「水平與垂直居中」。
-- **問題頁配圖**：每一題小組討論問題頁面，請根據題目意境配上一張高清插圖作為點綴，插圖需與文字清晰區隔，不可重疊影響閱讀。
-- **風格**：清新、簡潔。背景限用淺米白或淡藍。
+### 🎨 視覺與排版：
+- **安全邊距**：所有文字與邊緣保留 **10%** 空間，防止切斷。
+- **對齊**：所有標題與內文必須「水平與垂直居中」。
+- **問題頁配圖**：每一題小組討論問題頁，請根據題目意境配上一張高清插圖作為點綴，不可遮擋文字。
 
 ### 📅 簡報結構：
-1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)[span_8](start_span)[span_8](end_span)。
-2. **Slide 2 今日經文**：原文全文，需注意字體大小與邊距。
-3. **小組討論問題 (結束頁)**：每一題獨立一頁，頁面需包含原問題文字與配圖。
+1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
+2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】。
+3. **Slide 3 證道主旨**：標題「證道主旨」，內文為【${aim}】(若無則跳過)。
+4. **Slide 4 講道內容**：標題「內容摘要」，將網頁中【內容】部分的文字一字不漏搬運 (字多可分多頁)。
+5. **小組討論問題**：每一題獨立一頁，搬運原問題文字並配圖。
 
-內容：
+內容原文：
 ${input}`;
 
         showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
@@ -108,7 +114,7 @@ ${input}`;
         if (startIdx === -1) return "（未能偵測問題）";
         let res = text.substring(startIdx + matchedKw.length).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
-        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "會務報告"];
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "Service Times", "會務報告"];
         let endIdx = res.length;
         for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
         return res.substring(0, endIdx).trim();
@@ -136,7 +142,7 @@ ${input}`;
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！\n即將前往 AI 頁面製作簡報。");
+            alert("✅ 指令已複製！\n即將前往 AI 頁面。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
