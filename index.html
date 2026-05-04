@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.2</title>
+    <title>SCCEFC 組長全能助手 V8.3</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -20,28 +20,27 @@
         .btn-wa { background: var(--whatsapp); display: none; }
         .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
-        .hint { font-size: 0.85rem; color: #d35400; margin-bottom: 10px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V8.2</h1>
+    <h1>組長全能助手 V8.3</h1>
     
     <span class="input-title">第一步：貼上教會網頁全文</span>
-    <textarea id="rawInput" rows="5" placeholder="去網頁 Ctrl+A 全選並在此貼上..."></textarea>
+    <textarea id="rawInput" rows="5" placeholder="全選網頁文字並在此貼上..."></textarea>
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
 
-    <button class="btn-gen" onclick="processData()">✨ 一鍵生成專業純淨指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 生成修正版指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版加強版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (排版邊距修正版)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -59,7 +58,7 @@
         const dates = calculateMeetingDates();
 
         const waMsg = `Adult Pastoral Zone T1 cell group meeting
-Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting} (每個月的第二和第四個星期五)
+Date: ${dates.thisMeeting} (this Friday); our next meeting: ${dates.nextMeeting}
 Time: 5:45 pm - 7:30 pm
 Room: 201, 213
 
@@ -71,33 +70,28 @@ ${youtube}
 小組分享問題：
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請規劃 PPT 內容。
 
-### ⛔ 內容禁令 (必須嚴格執行)：
-1. **禁止幻覺**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)，位於加拿大卡加利。🚫 **絕對禁止**寫成「南加州」或任何宣道會。
-2. **禁止雜訊**：除題目外，禁止在投影片添加任何額外的屬靈口號、勵志語句或不知名的裝飾文字。
-3. **禁止亂改問題**：小組討論問題必須【完全一字不漏】搬運，不准加 Bullet points 或解釋。
+### ⛔ 檔案命名與內容禁令 (必須嚴格執行)：
+1. **檔案名稱**：必須僅為【${title}】，嚴禁任何額外字眼。
+2. **禁止 Image Sources 頁面**：🚫 **絕對禁止**生成「Image Sources」或任何列出圖片網址的頁面，組員不需要這些資訊。
+3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。🚫 **禁止**寫成「南加州」。
+4. **禁止雜訊**：嚴禁在投影片添加任何不知名的裝飾文字。
 
-### 🎨 排版與設計要求：
-- **視覺風格**：清新、簡潔、對稱。背景限用「淺米白」或「極淡藍」。
-- **排版命令**：所有標題與內文必須「水平與垂直居中」，文字長度需適中，避免尷尬斷行。
-- **配圖要求**：為每一頁提供一個高清、具歷史深度或靈修默想感的圖片描述，圖片需與文字有清晰區隔，不可重疊影響閱讀。
+### 🎨 版面安全與視覺要求：
+- **安全邊距 (Critical)**：所有標題與內容必須距離投影片邊緣至少 **10%** 距離。🚫 **嚴禁**標題太貼頂部，避免螢幕切斷文字。
+- **對齊方式**：所有標題與內文必須「水平與垂直居中」。
+- **經文頁面**：必須列出 (${scriptureRef}) 的聖經全文。若字數較多，請自動縮小字體或分成多頁，確保文字不超出頁面。
+- **風格**：清新、簡潔。背景限用「淺米白」或「極淡藍」。
 
 ### 📅 簡報結構：
 1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
-2. **Slide 2 今日經文**：必須列出 (${scriptureRef}) 的【聖經原文全文】，不准摘要。
-3. **Slide 3 之後 (討論問題)**：每一題獨立一頁，頁面只能有原問題文字，字體要大且置中。
-4. **聲明頁 (研經背景前)**：獨立一頁，內容為「以下資料以正統基督教信仰和聖經真理為基礎，由 AI 解釋聖經，內容只供參考。」
-5. **研經背景答案**：最後部分請提供：
-    - 【經文概要】概述此章內容與主要事件。
-    - 【經文解釋】詳細闡述該節的含義。
-    - 【神學重點】指出核心神學信息、救恩啟示及屬靈信息。
-    - 【歷史文化背景】補充與理解本章相關的背景資料。
-    - 【引用】列出其他聖經相關經文，並說明其關聯。
-    - 【屬靈應用】提供如何將此章的信息應用於信徒生活。
-    - 【默想與反思問題】提出2-3個引導思考與靈修的問題。
+2. **Slide 2 今日經文**：原文全文，需注意邊距。
+3. **小組討論問題**：每一題獨立一頁，頁面只有原問題文字。
+4. **聲明頁**：在研經背景前，獨立一頁顯示：「以下資料以正統基督教信仰和聖經真理為基礎，由AI 解釋聖經，內容只供參考。」
+5. **專業研經背景**：提供概要、解釋、神學重點、歷史背景、引用、應用及2-3個反思問題。
 
-以下是網頁內容：
+內容：
 ${input}`;
 
         showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
@@ -118,11 +112,9 @@ ${input}`;
         }
         if (startIdx === -1) { const m = text.match(/\n\s*1\.\s/); if(m) startIdx = m.index; }
         if (startIdx === -1) return "（未能偵測問題）";
-        
         let res = text.substring(startIdx + matchedKw.length).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
-
-        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "OFFICE@SCCEFC.CA", "Google Calendar", "Service Times", "職位空缺", "📋"];
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "職位空缺"];
         let endIdx = res.length;
         for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
         return res.substring(0, endIdx).trim();
