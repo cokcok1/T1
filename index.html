@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V8.4</title>
+    <title>SCCEFC 組長全能助手 V8.5</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -12,11 +12,10 @@
         .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         textarea { background: #fffde7; }
-        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
-        .btn-gen { background: var(--primary); font-size: 1.1rem; }
-        .btn-gen:hover { background: #123456; }
-        .btn-copy { background: var(--accent); display: none; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); }
         .btn-wa { background: var(--whatsapp); display: none; }
+        .btn-copy { background: var(--accent); display: none; }
         .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
         .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
     </style>
@@ -25,7 +24,7 @@
 
 <div class="card">
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V8.4</h1>
+    <h1>組長全能助手 V8.5</h1>
     
     <span class="input-title">第一步：貼上網頁全選文字</span>
     <textarea id="rawInput" rows="5" placeholder="全選網頁文字並在此貼上..."></textarea>
@@ -39,7 +38,7 @@
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (已禁絕贅餘頁面)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (精簡配圖版)</div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 </div>
@@ -69,24 +68,23 @@ ${youtube}
 *小組分享問題：*
 ${questions}`;
 
-        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請規劃 PPT。
+        const aiPrompt = `你現在是專業的聖經教師與專業 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
 
-### ⛔ 檔案命名與贅餘禁令 (嚴格執行)：
-1. **檔案名稱**：必須僅為【${title}】，🚫 **禁止**加任何額外文字。
-2. **禁止贅餘最後一頁**：🚫 **絕對禁止**生成「謝謝觀看」、「總結」、「Image Sources」或任何類似的結語頁面。簡報必須以「默想與反思問題」作為最後一頁結束。
-3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」。🚫 **禁止**寫成「南加州」。
+### ⛔ 檔案命名與內容禁令 (嚴格執行)：
+1. **檔案名稱**：必須僅為【${title}】，🚫 **絕對禁止**加任何額外文字。
+2. **終止點**：簡報必須以「小組討論問題」作為結束頁。🚫 **絕對禁止**生成聲明頁、研經背景、結語或 Image Sources 頁面。
+3. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」(South Calgary Chinese EFC)[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)，位於加拿大卡加利[span_4](start_span)[span_4](end_span)。🚫 **絕對禁止**寫成「南加州」。
 
-### 🎨 版面安全要求：
-- **安全邊距**：標題與內文必須與邊緣保留 **10%** 空間，標題下移，確保不被螢幕切斷。
+### 🎨 版面安全與配圖要求：
+- **安全邊距**：標題與內文必須與邊緣保留 **10%** 空間，確保不被螢幕切斷。
 - **居中排版**：所有標題與內文必須「水平與垂直居中」。
-- **風格**：清新、簡潔。背景限用米白或淡藍。
+- **問題頁配圖**：每一題小組討論問題頁面，請根據題目意境配上一張高清插圖作為點綴，插圖需與文字清晰區隔，不可重疊影響閱讀。
+- **風格**：清新、簡潔。背景限用淺米白或淡藍。
 
 ### 📅 簡報結構：
-1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】。
+1. **Slide 1 封面**：標題【${title}】、經文【${scriptureRef}】、堂會【南卡城華人播道會】[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)[span_8](start_span)[span_8](end_span)。
 2. **Slide 2 今日經文**：原文全文，需注意字體大小與邊距。
-3. **小組討論問題**：每一題獨立一頁，頁面只能有原問題文字。
-4. **聲明頁 (關鍵)**：在進入研經背景前，獨立一頁顯示：「以下資料以正統基督教信仰和聖經真理為基礎，由AI 解釋聖經，內容只供參考。」
-5. **專業研經背景**：【經文概要】概述此章內容與主要事件, 【歷史文化背景】詳細闡述, 補充與理解本章相關的背景資料。
+3. **小組討論問題 (結束頁)**：每一題獨立一頁，頁面需包含原問題文字與配圖。
 
 內容：
 ${input}`;
@@ -110,7 +108,7 @@ ${input}`;
         if (startIdx === -1) return "（未能偵測問題）";
         let res = text.substring(startIdx + matchedKw.length).trim();
         if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
-        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times"];
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "會務報告"];
         let endIdx = res.length;
         for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
         return res.substring(0, endIdx).trim();
@@ -138,7 +136,7 @@ ${input}`;
     function copyToGemini() {
         const text = document.getElementById('aiOutput').innerText;
         navigator.clipboard.writeText(text).then(() => {
-            alert("✅ 指令已複製！\n即將前往 AI 頁面。");
+            alert("✅ 指令已複製！\n即將前往 AI 頁面製作簡報。");
             window.open("https://gemini.google.com/app", "_blank");
         });
     }
