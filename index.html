@@ -111,7 +111,7 @@ ${input}`;
     function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
 
     function extractQuestions(text) {
-        const kw = ["討論問題", "小組分享問題", "小組問題", "討論題目", "小組進深分享問題"];
+        const kw = ["討論問題", "小組分享問題", "小組問題", "討論題目", "小組進深分享問題", "小組證道進深分享問題", "小組反思問題"];
         let startIdx = -1; let matchedKw = "";
         for (let k of kw) { let idx = text.indexOf(k); if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; } }
         if (startIdx === -1) return "（未能偵測問題）";
