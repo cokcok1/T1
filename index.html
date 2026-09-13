@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCCEFC 組長全能助手 V9.1</title>
+    <style>
+        :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 850px; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin: 15px 0; }
+        .btn-shortcut { background: var(--link); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 0.9rem; transition: 0.2s; }
+        .btn-shortcut:hover { background: #2980b9; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
+        .hint { font-size: 0.8rem; color: #888; margin: -10px 0 15px 0; }
+        textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
+        textarea { background: #fffde7; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); }
+        .btn-wa { background: var(--whatsapp); display: none; }
+        .btn-pptx { background: #d35400; display: none; }
+        .btn-copy { background: var(--accent); display: none; }
+        .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
+        .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
+<body>
+
+<div class="card">
+    <div style="text-align: center;">
+        <a href="https://www.sccefc.ca/cn/past-sermons" target="_blank" class="btn-shortcut">🌐 前往教會網頁 (過往講道)</a>
+    </div>
+    
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
+    <h1>組長全能助手 V9.1</h1>
+    
+    <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
+    <p class="hint">💡 小提示：由於瀏覽器安全限制，呢個網頁工具冇辦法直接讀取教會網址嘅內容，要你手動複製貼上。如果想「貼網址就自動出」，可以直接同 Claude 對話講個網址，Claude 可以幫你即時讀取生成。</p>
+    <textarea id="rawInput" rows="5" placeholder="請在此貼上複製的網頁全文..."></textarea>
+    
+    <span class="input-title">第二步：YouTube 連結 (選填)</span>
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
+
+    <span class="input-title">第三步：經文全文 (選填，用於 PowerPoint「今日經文」頁)</span>
+    <p class="hint">為免 AI 靠記憶砌錯經文，呢度可以自己貼返準確嘅經文全文（例如由聖經 App／和合本網站複製）。留空就會跳過呢一頁。</p>
+    <textarea id="scriptureText" rows="4" placeholder="可貼上經文全文..."></textarea>
+
+    <details style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; padding: 10px 15px; background: #fafafa;">
+        <summary style="cursor: pointer; font-weight: bold; color: var(--primary);">⚙️ 進階設定</summary>
+
+        <span class="input-title">小組名稱</span>
+        <input type="text" id="groupName" class="simple-input" value="Adult Pastoral Zone T1">
+
+        <span class="input-title">房間編號</span>
+        <input type="text" id="roomNumber" class="simple-input" value="N007, N008">
+
+        <span class="input-title">聚會時間</span>
+        <input type="text" id="meetingTime" class="simple-input" value="5:45 pm - 7:30 pm">
+
+        <span class="input-title">聚會星期幾</span>
+        <select id="meetingDay" class="simple-input">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5" selected>Friday</option>
+            <option value="6">Saturday</option>
+        </select>
+    </details>
+
+    <button class="btn-gen" onclick="processData()">✨ 生成「一字不漏」指令及 WhatsApp</button>
+
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
+    <div id="waOutput" class="output-box"></div>
+    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
+
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (原汁原味版)</div>
+    <div id="aiOutput" class="output-box"></div>
+    <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
+
+    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint (免費，網頁內下載)</div>
+    <p id="pptxHint" class="hint" style="display:none;">內容一字不漏搬運，唔會用 AI 砌內容；問題頁用色塊裝飾代替 AI 插圖，確保風格統一。</p>
+    <button id="genPptxBtn" class="btn-pptx" onclick="generatePPTX()">📊 產生 PowerPoint (.pptx)</button>
+</div>
+
+<script>
+    function processData() {
+        const input = document.getElementById('rawInput').value;
+        const manualYT = document.getElementById('manualYoutube').value.trim();
+        if (!input) { alert("請先貼上網頁內容！"); return; }
+
+        // 多重識別邏輯
+        const title = extractInfo(input, /(?:講題|證道主題|証道主題)[：|: ]\s*「?(.*?)」?(?:\n|$)/i) || "今日講道";
+        const scripture = extractInfo(input, /(?:經文)[：|: ]\s*(.*?)(?:\n|$)/i) || "請參閱網頁";
+        const aim = extractInfo(input, /(?:主旨|證道主旨|証道主旨|旨意)[：|: ]\s*(.*?)(?:\n|$)/i) || "";
+        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
+        const questions = extractQuestions(input);
+
+        const groupName = document.getElementById('groupName').value.trim() || "Adult Pastoral Zone T1";
+        const roomNumber = document.getElementById('roomNumber').value.trim() || "N007, N008";
+        const meetingTime = document.getElementById('meetingTime').value.trim() || "5:45 pm - 7:30 pm";
+        const meetingDay = parseInt(document.getElementById('meetingDay').value, 10);
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const dayLabel = dayNames[meetingDay];
+
+        const dates = calculateMeetingDates(meetingDay);
+
+        // 1. WhatsApp 訊息格式
+        const waMsg = `*${groupName} cell group meeting*
+Date: ${dates.thisMeeting} (this ${dayLabel}); our next meeting: ${dates.nextMeeting}
+Time: ${meetingTime}
+Room: ${roomNumber}
+
+${youtube}
+
+*講題：*${title}
+*經文：*${scripture}
+${aim ? `*主旨：*${aim}\n` : ""}
+*小組分享問題：*
+${questions}`;
+
+        // 2. AI 指令 (絕對原創搬運)
+        const aiPrompt = `你現在是專業的 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
+
+### ⛔ 核心禁令 (最高準則)：
+1. **一字不漏**：內容必須【完全搬運】，🚫 禁止增加、刪減或修改任何文字，🚫 禁止加口號或解釋。
+2. **檔案名稱**：必須僅為【${title}】，嚴禁加任何額外字眼。
+3. **終止點**：簡報必須以「小組討論問題」結束，之後不可有任何結語頁。
+4. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」，位於卡加利。
+
+### 🎨 視覺與排版：
+- **安全邊距 (Critical)**：所有文字與螢幕邊緣保留至少 **10%** 空白，防止被電視螢幕切斷。
+- **絕對置中**：所有標題與內文必須「水平與垂直居中」。
+- **問題頁配圖**：每一題小組問題頁，配上一張高清插圖作為視覺點綴，不可遮擋文字。
+- **風格**：清新、簡潔。
+
+### 📅 簡報結構：
+1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
+2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】。
+3. **Slide 3 證道主旨**：標題「證道主旨」，內容為【${aim}】(若無則跳過)。
+4. **Slide 4 講道內容**：標題「內容摘要」，將內容文字一字不漏搬運 (字多可分頁)。
+5. **小組討論問題**：每一題獨立一頁，搬運原問題文字並配圖。
+
+內容原文：
+${input}`;
+
+        showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
+        showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
+        document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
+
+        // 儲存呢次解析到嘅資料，畀 generatePPTX() 用
+        window.lastSermonData = {
+            title, scripture, aim,
+            scriptureText: document.getElementById('scriptureText').value.trim(),
+            questions: splitQuestions(questions)
+        };
+        document.getElementById('pptxTitle').style.display = 'block';
+        document.getElementById('pptxHint').style.display = 'block';
+        document.getElementById('genPptxBtn').style.display = 'block';
+    }
+
+    // 將已抽取嘅問題文字，按編號拆返做一條一條，方便逐頁做 PPT
+    function splitQuestions(text) {
+        if (!text || text.startsWith('（未能偵測')) return [];
+        return text.split(/\n(?=\s*\d+[\.\、\)])/).map(s => s.trim()).filter(Boolean);
+    }
+
+    async function generatePPTX() {
+        if (typeof PptxGenJS === 'undefined') {
+            alert('⚠️ PowerPoint 產生器未載入成功，請檢查網絡連線後重新整理頁面再試。');
+            return;
+        }
+        const data = window.lastSermonData;
+        if (!data) { alert('請先生成資料。'); return; }
+
+        const PRIMARY = '1A4A7C', ACCENT = 'C5A059', WHITE = 'FFFFFF', DARK = '333333';
+        const pptx = new PptxGenJS();
+        pptx.defineLayout({ name: 'WIDE', width: 13.33, height: 7.5 });
+        pptx.layout = 'WIDE';
+
+        // 安全邊距：文字方塊 x/y/w/h 都預留至少 10% 空白
+        const MX = 1.3, MY = 0.75, CW = 13.33 - MX * 2;
+
+        // Slide 1：封面
+        let s1 = pptx.addSlide();
+        s1.background = { color: PRIMARY };
+        s1.addText('南卡城華人播道會', { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 18, bold: true });
+        s1.addText(data.title, { x: MX, y: 2.6, w: CW, h: 1.8, align: 'center', valign: 'middle', color: WHITE, fontSize: 40, bold: true });
+        s1.addText(data.scripture, { x: MX, y: 4.6, w: CW, h: 0.7, align: 'center', color: ACCENT, fontSize: 22 });
+
+        // Slide 2：今日經文（只有填咗經文全文先出呢頁）
+        if (data.scriptureText) {
+            let s2 = pptx.addSlide();
+            s2.background = { color: WHITE };
+            s2.addText('今日經文', { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
+            s2.addText(data.scripture, { x: MX, y: 1.5, w: CW, h: 0.5, align: 'center', color: ACCENT, fontSize: 16, italic: true });
+            s2.addText(data.scriptureText, { x: MX, y: 2.1, w: CW, h: 4.6, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
+        }
+
+        // Slide 3：證道主旨（有先出）
+        if (data.aim) {
+            let s3 = pptx.addSlide();
+            s3.background = { color: WHITE };
+            s3.addText('證道主旨', { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
+            s3.addText(data.aim, { x: MX, y: 2.2, w: CW, h: 3.5, align: 'center', valign: 'middle', color: DARK, fontSize: 22, lineSpacing: 32 });
+        }
+
+        // 問題頁：每題獨立一頁，用色塊代替 AI 插圖，維持統一風格
+        data.questions.forEach((q, i) => {
+            let s = pptx.addSlide();
+            s.background = { color: WHITE };
+            s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            s.addShape(pptx.ShapeType.rect, { x: 13.33 - 0.35, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            s.addText(`小組分享問題 ${i + 1} / ${data.questions.length}`, { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 16, bold: true });
+            s.addText(q.replace(/^\d+[\.\、\)]\s*/, ''), { x: MX, y: 1.6, w: CW, h: 5.2, align: 'center', valign: 'middle', color: DARK, fontSize: 24, lineSpacing: 34 });
+        });
+
+        pptx.writeFile({ fileName: `${data.title}.pptx` });
+    }
+
+    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
+    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
+
+    function extractQuestions(text) {
+        // 盡可能涵蓋教會網頁曾出現/可能出現嘅各種講法，按出現位置最早者為準
+        const kw = [
+            "小組進深分享問題", "小組進深分討論問題", "小組討論分享問題",
+            "小組證道進深分享問題", "小組証道進深分享問題",
+            "小組分享問題", "小組討論問題", "小組問題",
+            "討論問題", "討論題目", "分享問題", "反思問題",
+            "小組反思問題", "小組反思分享問題",
+            "生命應用問題", "應用問題", "生活應用",
+            "小組互動問題", "查經問題", "小組查經問題",
+            "小組進深討論問題", "小組深入討論問題",
+            // 簡體備用（以防國語堂頁面格式混入）
+            "小组进深分享问题", "小组讨论问题", "小组分享问题"
+        ];
+        let startIdx = -1; let matchedKw = "";
+        for (let k of kw) { let idx = text.indexOf(k); if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; } }
+
+        let res = null;
+
+        if (startIdx !== -1) {
+            // 情景一：網頁有寫明 Title
+            res = text.substring(startIdx + matchedKw.length).trim();
+            if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
+        } else {
+            // 情景二：網頁漏咗寫 Title，直接接編號問題（1. 2. 3. …）
+            // 由「經文／主旨／講題」呢類資訊行之後開始搜，避免誤中經文入面嘅數字（例如 徒28:1-16）
+            const afterMarkers = ["主旨", "經文", "証道主旨", "證道主旨", "講題", "證道主題", "証道主題"];
+            let searchFrom = 0;
+            for (let m of afterMarkers) {
+                let idx = text.indexOf(m);
+                if (idx !== -1) {
+                    let lineEnd = text.indexOf("\n", idx);
+                    if (lineEnd === -1) lineEnd = idx + m.length;
+                    if (lineEnd > searchFrom) searchFrom = lineEnd;
+                }
+            }
+            const numMatch = text.slice(searchFrom).match(/\n\s*1[\.、\)]\s*/);
+            if (numMatch) {
+                res = text.slice(searchFrom + numMatch.index).trim();
+            }
+        }
+
+        if (!res) return "（未能偵測問題，請檢查關鍵字或手動貼上）";
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "會務報告"];
+        let endIdx = res.length;
+        for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
+        return res.substring(0, endIdx).trim();
+    }
+
+    function calculateMeetingDates(targetDay = 5) {
+        // targetDay: 0=Sunday ... 6=Saturday (default 5=Friday for T1)
+        const d = new Date(); const f = new Date(d); f.setDate(d.getDate() + (targetDay - d.getDay() + 7) % 7);
+        const opt = { month: 'short', day: 'numeric', year: 'numeric' }; const n = new Date(f); n.setDate(f.getDate() + 14);
+        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
+    }
+
+    function showResult(id, content, titleId, btnId) {
+        document.getElementById(id).innerText = content;
+        document.getElementById(id).style.display = "block";
+        document.getElementById(titleId).style.display = "block";
+        document.getElementById(btnId).style.display = "block";
+    }
+
+    function copyContent(id, msg) { navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => alert(msg)); }
+
+    function copyToGemini() {
+        const text = document.getElementById('aiOutput').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ 指令已複製！\n即將前往 AI 頁面。");
+            window.open("https://gemini.google.com/app", "_blank");
+        });
+    }
+</script>
+</body>
+</html>
