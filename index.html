@@ -67,7 +67,7 @@
         </select>
     </details>
 
-    <button class="btn-gen" onclick="processData()">✨ 生成「一字不漏」指令及 WhatsApp</button>
+    <button class="btn-gen" onclick="processData()">✨ 生成指令及 WhatsApp</button>
 
     <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
     <div id="waOutput" class="output-box"></div>
@@ -78,7 +78,7 @@
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 
     <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint / PDF </div>
-    
+    <p id="pptxHint" class="hint" style="display:none; margin-top: 14px;">內容經文全文自動由本網站聖經文字檔讀取</p>
     <button id="genPptxBtn" class="btn-pptx" onclick="generatePPTX()">📊 產生 PowerPoint (.pptx)</button>
     <button id="genScreenBtn" class="btn-pptx" style="background:#8e44ad; display:none;" onclick="generateScreenView()">🖥️ 大螢幕播放版</button>
 </div>
