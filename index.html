@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V9.2</title>
+    <title>SCCEFC 組長全能助手 V9.3</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -33,7 +33,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V9.2</h1>
+    <h1>組長全能助手 V9.3</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     <p class="hint">💡 小提示：由於瀏覽器安全限制，呢個網頁工具冇辦法直接讀取教會網址嘅內容，要你手動複製貼上。如果想「貼網址就自動出」，可以直接同 Claude 對話講個網址，Claude 可以幫你即時讀取生成。</p>
@@ -41,12 +41,7 @@
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
-
-    <span class="input-title">第三步：經文全文 (選填，用於 PowerPoint「今日經文」頁)</span>
-    <p class="hint">為免 AI 靠記憶砌錯經文，呢度可以自己貼返準確嘅經文全文（例如由聖經 App／和合本網站複製）。留空就會跳過呢一頁。</p>
-    <textarea id="scriptureText" rows="4" placeholder="可貼上經文全文..."></textarea>
-    <button type="button" class="btn-copy" style="display:block; margin-top:-8px;" onclick="lookupScripture()">📖 根據「經文」自動搵和合本原文</button>
-    <p id="scriptureLookupMsg" class="hint" style="display:none;"></p>
+    <p class="hint">💡 經文全文已改為自動讀取（來源：本網站嘅和合本聖經文字檔），唔使再手動貼經文。</p>
 
     <details style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; padding: 10px 15px; background: #fafafa;">
         <summary style="cursor: pointer; font-weight: bold; color: var(--primary);">⚙️ 進階設定</summary>
@@ -82,9 +77,10 @@
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 
-    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint (免費，網頁內下載)</div>
-    <p id="pptxHint" class="hint" style="display:none; margin-top: 14px;">內容一字不漏搬運，唔會用 AI 砌內容；問題頁用色塊裝飾代替 AI 插圖，確保風格統一。</p>
+    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint / PDF (免費，網頁內下載)</div>
+    <p id="pptxHint" class="hint" style="display:none; margin-top: 14px;">內容一字不漏搬運，唔會用 AI 砌內容；經文全文自動由本網站聖經文字檔讀取；每頁加咗大自然山水裝飾圖案，風格統一。</p>
     <button id="genPptxBtn" class="btn-pptx" onclick="generatePPTX()">📊 產生 PowerPoint (.pptx)</button>
+    <button id="genPdfBtn" class="btn-pptx" style="background:#8e44ad; display:none;" onclick="generatePDF()">📄 產生 PDF（開啟列印視窗，選「另存為 PDF」）</button>
 </div>
 
 <script>
@@ -152,15 +148,105 @@ ${input}`;
         showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
         document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
 
-        // 儲存呢次解析到嘅資料，畀 generatePPTX() 用
+        // 儲存呢次解析到嘅資料，畀 generatePPTX()/generatePDF() 用
         window.lastSermonData = {
             title, scripture, aim,
-            scriptureText: document.getElementById('scriptureText').value.trim(),
+            scriptureText: '', // 稍後自動讀取
             questions: splitQuestions(questions)
         };
         document.getElementById('pptxTitle').style.display = 'block';
         document.getElementById('pptxHint').style.display = 'block';
         document.getElementById('genPptxBtn').style.display = 'block';
+        document.getElementById('genPdfBtn').style.display = 'block';
+
+        // 背景自動讀取經文全文，唔使使用者郁手
+        fetchScriptureForCurrentData();
+    }
+
+    // ===== 自動讀取本網站聖經文字檔（同源，冇 CORS 問題）=====
+    const BIBLE_TXT_URL = 'https://cokcok1.github.io/T1/chinese_union_trad_trad.txt';
+    let bibleTextCache = null; // 成個檔案讀一次就快取喺記憶體
+
+    async function loadBibleText() {
+        if (bibleTextCache) return bibleTextCache;
+        const resp = await fetch(BIBLE_TXT_URL);
+        if (!resp.ok) throw new Error('無法讀取聖經文字檔');
+        bibleTextCache = await resp.text();
+        return bibleTextCache;
+    }
+
+    // 解析「經文」欄位（例如 "羅馬書1:1-17" 或 "詩篇23"），回傳 {book, chapter, startVerse, endVerse}
+    function parseScriptureRef(scripture) {
+        if (!scripture) return null;
+        const names = Object.keys(BIBLE_BOOK_MAP).sort((a, b) => b.length - a.length);
+        for (const name of names) {
+            const idx = scripture.indexOf(name);
+            if (idx !== -1) {
+                const rest = scripture.slice(idx + name.length);
+                const m = rest.match(/(\d+)(?:[:：](\d+)(?:[-–](\d+))?)?/);
+                if (m) {
+                    return {
+                        book: name,
+                        chapter: m[1],
+                        startVerse: m[2] ? parseInt(m[2], 10) : null,
+                        endVerse: m[3] ? parseInt(m[3], 10) : (m[2] ? parseInt(m[2], 10) : null)
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    // 由聖經文字檔入面抽出指定經文範圍嘅原文
+    function extractVersesFromBibleText(fullText, ref) {
+        const lines = fullText.split('\n');
+        const prefix = `${ref.book} ${ref.chapter}:`;
+        let result = [];
+        for (const line of lines) {
+            if (!line.startsWith(prefix)) continue;
+            const afterPrefix = line.slice(prefix.length);
+            const vMatch = afterPrefix.match(/^(\d+)\s(.*)$/);
+            if (!vMatch) continue;
+            const verseNum = parseInt(vMatch[1], 10);
+            if (ref.startVerse && (verseNum < ref.startVerse || verseNum > ref.endVerse)) continue;
+            // 去除逐字之間嘅半形空格（原檔排版留低嘅），但保留敬空全形空格「　」
+            const cleanText = vMatch[2].replace(/ /g, '');
+            result.push(`${verseNum} ${cleanText}`);
+        }
+        return result.join('\n');
+    }
+
+    async function fetchScriptureForCurrentData() {
+        const data = window.lastSermonData;
+        if (!data || !data.scripture) return;
+        const ref = parseScriptureRef(data.scripture);
+        if (!ref) return;
+        try {
+            const fullText = await loadBibleText();
+            const verses = extractVersesFromBibleText(fullText, ref);
+            if (verses) {
+                data.scriptureText = verses;
+            }
+        } catch (e) {
+            console.warn('自動讀取經文失敗，PPT/PDF 會跳過經文頁：', e);
+        }
+    }
+
+    // 畫大自然山水裝飾（PptxGenJS 版）。full=true 用喺封面，細版用喺內文頁。
+    function addNatureDecorPptx(slide, PRIMARY, ACCENT, full) {
+        const W = 13.33, H = 7.5;
+        if (full) {
+            slide.addShape('rect', { x: 0, y: 0, w: W, h: H, fill: { color: PRIMARY } });
+            slide.addShape('ellipse', { x: W - 3.2, y: 0.4, w: 1.6, h: 1.6, fill: { color: ACCENT, transparency: 30 } });
+            slide.addShape('triangle', { x: -1, y: H - 2.6, w: 6, h: 2.6, fill: { color: '13385F' }, line: { type: 'none' }, rotate: 0 });
+            slide.addShape('triangle', { x: 2.5, y: H - 3.1, w: 7, h: 3.1, fill: { color: '0F2F4E' }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 7.5, y: H - 2.2, w: 6.5, h: 2.2, fill: { color: '13385F' }, line: { type: 'none' } });
+        } else {
+            slide.addShape('ellipse', { x: W - 1.4, y: 0.3, w: 0.7, h: 0.7, fill: { color: ACCENT, transparency: 55 } });
+            slide.addShape('triangle', { x: -0.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 1.8, y: H - 1.15, w: 4, h: 1.15, fill: { color: PRIMARY, transparency: 85 }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: W - 4.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
+        }
     }
 
     // 將已抽取嘅問題文字，按編號拆返做一條一條，方便逐頁做 PPT
@@ -176,6 +262,7 @@ ${input}`;
         }
         const data = window.lastSermonData;
         if (!data) { alert('請先生成資料。'); return; }
+        if (!data.scriptureText) { await fetchScriptureForCurrentData(); }
 
         const PRIMARY = '1A4A7C', ACCENT = 'C5A059', WHITE = 'FFFFFF', DARK = '333333';
         const pptx = new PptxGenJS();
@@ -185,17 +272,19 @@ ${input}`;
         // 安全邊距：文字方塊 x/y/w/h 都預留至少 10% 空白
         const MX = 1.3, MY = 0.75, CW = 13.33 - MX * 2;
 
-        // Slide 1：封面
+        // Slide 1：封面（完整山水剪影背景）
         let s1 = pptx.addSlide();
         s1.background = { color: PRIMARY };
+        addNatureDecorPptx(s1, PRIMARY, ACCENT, true);
         s1.addText('南卡城華人播道會', { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 18, bold: true });
         s1.addText(data.title, { x: MX, y: 2.6, w: CW, h: 1.8, align: 'center', valign: 'middle', color: WHITE, fontSize: 40, bold: true });
         s1.addText(data.scripture, { x: MX, y: 4.6, w: CW, h: 0.7, align: 'center', color: ACCENT, fontSize: 22 });
 
-        // Slide 2：今日經文（只有填咗經文全文先出呢頁）
+        // Slide 2：今日經文（只有攞到經文全文先出呢頁）
         if (data.scriptureText) {
             let s2 = pptx.addSlide();
             s2.background = { color: WHITE };
+            addNatureDecorPptx(s2, PRIMARY, ACCENT, false);
             s2.addText('今日經文', { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
             s2.addText(data.scripture, { x: MX, y: 1.5, w: CW, h: 0.5, align: 'center', color: ACCENT, fontSize: 16, italic: true });
             s2.addText(data.scriptureText, { x: MX, y: 2.1, w: CW, h: 4.6, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
@@ -205,21 +294,93 @@ ${input}`;
         if (data.aim) {
             let s3 = pptx.addSlide();
             s3.background = { color: WHITE };
+            addNatureDecorPptx(s3, PRIMARY, ACCENT, false);
             s3.addText('證道主旨', { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
             s3.addText(data.aim, { x: MX, y: 2.2, w: CW, h: 3.5, align: 'center', valign: 'middle', color: DARK, fontSize: 22, lineSpacing: 32 });
         }
 
-        // 問題頁：每題獨立一頁，用色塊代替 AI 插圖，維持統一風格
+        // 問題頁：每題獨立一頁，配大自然山水裝飾，維持統一風格
         data.questions.forEach((q, i) => {
             let s = pptx.addSlide();
             s.background = { color: WHITE };
-            s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
-            s.addShape(pptx.ShapeType.rect, { x: 13.33 - 0.35, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            addNatureDecorPptx(s, PRIMARY, ACCENT, false);
+            s.addShape('rect', { x: 0, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            s.addShape('rect', { x: 13.33 - 0.35, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
             s.addText(`小組分享問題 ${i + 1} / ${data.questions.length}`, { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 16, bold: true });
             s.addText(q.replace(/^\d+[\.\、\)]\s*/, ''), { x: MX, y: 1.6, w: CW, h: 5.2, align: 'center', valign: 'middle', color: DARK, fontSize: 24, lineSpacing: 34 });
         });
 
         pptx.writeFile({ fileName: `${data.title}.pptx` });
+    }
+
+    // ===== PDF（簡報式）匯出 =====
+    // 用瀏覽器內置「列印 → 另存為 PDF」，保證中文字型正常顯示（唔靠字型庫）
+    async function generatePDF() {
+        const data = window.lastSermonData;
+        if (!data) { alert('請先生成資料。'); return; }
+        if (!data.scriptureText) { await fetchScriptureForCurrentData(); }
+
+        const PRIMARY = '#1A4A7C', ACCENT = '#C5A059', DARK = '#333333';
+
+        function slideHtml(innerHtml, isCover) {
+            return `<div class="pdf-slide" style="background:${isCover ? PRIMARY : '#fff'};">
+                <div class="pdf-mountain m1"></div><div class="pdf-mountain m2"></div><div class="pdf-mountain m3"></div>
+                <div class="pdf-sun"></div>
+                <div class="pdf-content">${innerHtml}</div>
+            </div>`;
+        }
+
+        let slides = [];
+        slides.push(slideHtml(`
+            <div style="color:${ACCENT}; font-size:22px; font-weight:bold; margin-bottom:40px;">南卡城華人播道會</div>
+            <div style="color:#fff; font-size:44px; font-weight:bold; margin-bottom:30px;">${data.title}</div>
+            <div style="color:${ACCENT}; font-size:24px;">${data.scripture}</div>
+        `, true));
+
+        if (data.scriptureText) {
+            slides.push(slideHtml(`
+                <div style="color:${PRIMARY}; font-size:30px; font-weight:bold; margin-bottom:20px;">今日經文</div>
+                <div style="color:${ACCENT}; font-size:18px; font-style:italic; margin-bottom:30px;">${data.scripture}</div>
+                <div style="color:${DARK}; font-size:19px; line-height:1.9; white-space:pre-wrap; max-width:85%;">${data.scriptureText}</div>
+            `, false));
+        }
+
+        if (data.aim) {
+            slides.push(slideHtml(`
+                <div style="color:${PRIMARY}; font-size:30px; font-weight:bold; margin-bottom:30px;">證道主旨</div>
+                <div style="color:${DARK}; font-size:24px; line-height:1.8; max-width:85%;">${data.aim}</div>
+            `, false));
+        }
+
+        data.questions.forEach((q, i) => {
+            slides.push(slideHtml(`
+                <div style="color:${ACCENT}; font-size:16px; font-weight:bold; margin-bottom:30px;">小組分享問題 ${i + 1} / ${data.questions.length}</div>
+                <div style="color:${DARK}; font-size:26px; line-height:1.8; max-width:85%;">${q.replace(/^\d+[\.\、\)]\s*/, '')}</div>
+            `, false));
+        });
+
+        const printWin = window.open('', '_blank');
+        printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${data.title}</title>
+        <style>
+            @page { size: 13.33in 7.5in; margin: 0; }
+            body { margin: 0; font-family: 'Microsoft JhengHei', sans-serif; }
+            .pdf-slide { position: relative; width: 13.33in; height: 7.5in; overflow: hidden; page-break-after: always;
+                display: flex; align-items: center; justify-content: center; text-align: center; }
+            .pdf-content { position: relative; z-index: 2; padding: 0 10%; }
+            .pdf-mountain { position: absolute; bottom: 0; width: 0; height: 0; z-index: 1; }
+            .pdf-slide[style*="${PRIMARY}"] .m1 { border-left: 250px solid transparent; border-right: 250px solid transparent; border-bottom: 130px solid #13385F; left: -40px; }
+            .pdf-slide[style*="${PRIMARY}"] .m2 { border-left: 350px solid transparent; border-right: 350px solid transparent; border-bottom: 150px solid #0F2F4E; left: 220px; }
+            .pdf-slide[style*="${PRIMARY}"] .m3 { border-left: 300px solid transparent; border-right: 300px solid transparent; border-bottom: 110px solid #13385F; right: -40px; left: auto; }
+            .pdf-slide:not([style*="${PRIMARY}"]) .m1 { border-left: 180px solid transparent; border-right: 180px solid transparent; border-bottom: 45px solid #eee; left: -30px; }
+            .pdf-slide:not([style*="${PRIMARY}"]) .m2 { border-left: 220px solid transparent; border-right: 220px solid transparent; border-bottom: 50px solid #f2f2f2; right: -30px; left: auto; }
+            .pdf-slide:not([style*="${PRIMARY}"]) .m3 { display: none; }
+            .pdf-sun { position: absolute; top: 40px; right: 60px; width: 70px; height: 70px; border-radius: 50%; background: ${ACCENT}; opacity: 0.5; z-index: 1; }
+            @media print { .pdf-slide { page-break-after: always; } }
+        </style>
+        </head><body>${slides.join('')}
+        <script>window.onload = function() { setTimeout(function(){ window.print(); }, 400); };<\/script>
+        </body></html>`);
+        printWin.document.close();
     }
 
     // 中文書卷名 -> cnbible.com (和合本繁體) 網址代碼，用嚟自動搵返經文連結
@@ -261,37 +422,8 @@ ${input}`;
     }
 
     async function lookupScripture() {
-        const scripture = document.getElementById('scriptureText').dataset.ref || (window.lastSermonData && window.lastSermonData.scripture) || extractInfo(document.getElementById('rawInput').value, /(?:經文)[：|: ]\s*(.*?)(?:\n|$)/i);
-        const msgEl = document.getElementById('scriptureLookupMsg');
-        msgEl.style.display = 'block';
-        if (!scripture) {
-            msgEl.textContent = '⚠️ 未偵測到「經文」欄位，請先喺第一步貼上內容再試，或直接手動貼經文全文。';
-            return;
-        }
-        const url = buildScriptureUrl(scripture);
-        if (!url) {
-            msgEl.textContent = `⚠️ 未能自動辨識書卷「${scripture}」，請手動貼上經文全文。`;
-            return;
-        }
-        msgEl.textContent = '🔍 搜尋緊，請稍候...';
-        try {
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error('fetch failed');
-            const html = await resp.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const text = doc.body ? doc.body.innerText : '';
-            if (text && text.length > 30) {
-                document.getElementById('scriptureText').value = text.trim();
-                msgEl.textContent = '✅ 已自動填入經文全文，請檢查一下再使用。';
-                return;
-            }
-            throw new Error('empty content');
-        } catch (e) {
-            // 大部分經文網站唔開放俾其他網頁讀取（CORS），呢種情況會走去呢度
-            window.open(url, '_blank');
-            msgEl.textContent = '📖 已幫你打開和合本經文頁面（新分頁），Ctrl+A 全選複製，再貼返上面「經文全文」欄即可。';
-        }
+        // 已由 fetchScriptureForCurrentData() 自動處理，呢個函數保留做後備（cnbible.com 連結），暫時未有 UI 掣連過去。
+        return;
     }
 
     function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
