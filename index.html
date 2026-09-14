@@ -36,12 +36,12 @@
     <h1>組長全能助手 V9.5</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
-    <p class="hint">💡 小提示：由於瀏覽器安全限制，呢個網頁工具冇辦法直接讀取教會網址嘅內容，要你手動複製貼上。如果想「貼網址就自動出」，可以直接同 Claude 對話講個網址，Claude 可以幫你即時讀取生成。</p>
+    
     <textarea id="rawInput" rows="5" placeholder="請在此貼上複製的網頁全文..."></textarea>
     
     <span class="input-title">第二步：YouTube 連結 (選填)</span>
     <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
-    <p class="hint">💡 經文全文已改為自動讀取（來源：本網站嘅和合本聖經文字檔），唔使再手動貼經文。</p>
+    
 
     <details style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; padding: 10px 15px; background: #fafafa;">
         <summary style="cursor: pointer; font-weight: bold; color: var(--primary);">⚙️ 進階設定</summary>
@@ -73,14 +73,14 @@
     <div id="waOutput" class="output-box"></div>
     <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
 
-    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 (原汁原味版)</div>
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 </div>
     <div id="aiOutput" class="output-box"></div>
     <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
 
-    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint / PDF (免費，網頁內下載)</div>
-    <p id="pptxHint" class="hint" style="display:none; margin-top: 14px;">內容一字不漏搬運，唔會用 AI 砌內容；經文全文自動由本網站聖經文字檔讀取；每頁加咗大自然山水裝飾圖案，風格統一。</p>
+    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint / PDF </div>
+    
     <button id="genPptxBtn" class="btn-pptx" onclick="generatePPTX()">📊 產生 PowerPoint (.pptx)</button>
-    <button id="genScreenBtn" class="btn-pptx" style="background:#8e44ad; display:none;" onclick="generateScreenView()">🖥️ 開啟大螢幕播放版（直接投影，唔使列印）</button>
+    <button id="genScreenBtn" class="btn-pptx" style="background:#8e44ad; display:none;" onclick="generateScreenView()">🖥️ 大螢幕播放版</button>
 </div>
 
 <script>
