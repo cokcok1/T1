@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCCEFC 組長全能助手 V9.6</title>
+    <style>
+        :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 850px; }
+        h1 { color: var(--primary); text-align: center; font-size: 1.6rem; margin: 15px 0; }
+        .btn-shortcut { background: var(--link); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 0.9rem; transition: 0.2s; }
+        .btn-shortcut:hover { background: #2980b9; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .input-title { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
+        .hint { font-size: 0.8rem; color: #888; margin: -10px 0 15px 0; }
+        textarea, .simple-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
+        textarea { background: #fffde7; }
+        button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px; }
+        .btn-gen { background: var(--primary); }
+        .btn-wa { background: var(--whatsapp); display: none; }
+        .btn-pptx { background: #d35400; display: none; }
+        .btn-copy { background: var(--accent); display: none; }
+        .output-box { width: 100%; height: 300px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; overflow-y: auto; margin-top: 10px; display: none; }
+        .section-title { font-weight: bold; color: var(--primary); margin-top: 25px; border-left: 5px solid var(--accent); padding-left: 10px; display: none; }
+        .debug-box { font-size: 0.75rem; color: #999; margin-top: 6px; white-space: pre-wrap; display: none; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
+<body>
+
+<div class="card">
+    <div style="text-align: center;">
+        <a href="https://www.sccefc.ca/cn/past-sermons" target="_blank" class="btn-shortcut">🌐 前往教會網頁 (過往講道)</a>
+    </div>
+    
+    <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
+    <h1>組長全能助手 V9.6</h1>
+    
+    <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
+    
+    <textarea id="rawInput" rows="5" placeholder="請在此貼上複製的網頁全文..."></textarea>
+    
+    <span class="input-title">第二步：YouTube 連結 (選填)</span>
+    <input type="text" id="manualYoutube" class="simple-input" placeholder="可手動貼上影片網址...">
+    
+
+    <details style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; padding: 10px 15px; background: #fafafa;">
+        <summary style="cursor: pointer; font-weight: bold; color: var(--primary);">⚙️ 進階設定</summary>
+
+        <span class="input-title">小組名稱</span>
+        <input type="text" id="groupName" class="simple-input" value="Adult Pastoral Zone T1">
+
+        <span class="input-title">房間編號</span>
+        <input type="text" id="roomNumber" class="simple-input" value="N007, N008">
+
+        <span class="input-title">聚會時間</span>
+        <input type="text" id="meetingTime" class="simple-input" value="5:45 pm - 7:30 pm">
+
+        <span class="input-title">聚會星期幾</span>
+        <select id="meetingDay" class="simple-input">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5" selected>Friday</option>
+            <option value="6">Saturday</option>
+        </select>
+    </details>
+
+    <button class="btn-gen" onclick="processData()">✨ 生成指令及 WhatsApp</button>
+
+    <div id="waTitle" class="section-title">📱 WhatsApp 群組訊息</div>
+    <div id="waOutput" class="output-box"></div>
+    <button id="copyWaBtn" class="btn-wa" onclick="copyContent('waOutput', '✅ WhatsApp 訊息已複製')">📋 複製 WhatsApp 訊息</button>
+
+    <div id="aiTitle" class="section-title">🤖 AI 簡報製作指令 </div>
+    <div id="aiOutput" class="output-box"></div>
+    <button id="copyAiBtn" class="btn-copy" onclick="copyToGemini()">📋 複製 AI 指令並前往 Gemini</button>
+
+    <div id="pptxTitle" class="section-title">📊 直接產生 PowerPoint / PDF </div>
+    <p id="pptxHint" class="hint" style="display:none; margin-top: 14px;">內容經文全文自動由本網站聖經文字檔讀取</p>
+    <div id="scriptureDebug" class="debug-box"></div>
+    <button id="genPptxBtn" class="btn-pptx" onclick="generatePPTX()">📊 產生 PowerPoint (.pptx)</button>
+    <button id="genScreenBtn" class="btn-pptx" style="background:#8e44ad; display:none;" onclick="generateScreenView()">🖥️ 大螢幕播放版</button>
+</div>
+
+<script>
+    function processData() {
+        const input = document.getElementById('rawInput').value;
+        const manualYT = document.getElementById('manualYoutube').value.trim();
+        if (!input) { alert("請先貼上網頁內容！"); return; }
+
+        // 多重識別邏輯
+        const title = extractInfo(input, /(?:講題|證道主題|証道主題)[：|: ]\s*「?(.*?)」?(?:\n|$)/i) || "今日講道";
+        const scripture = extractInfo(input, /(?:經文)[：|: ]\s*(.*?)(?:\n|$)/i) || "請參閱網頁";
+        const aim = extractInfo(input, /(?:主旨|證道主旨|証道主旨|旨意)[：|: ]\s*(.*?)(?:\n|$)/i) || "";
+        const youtube = manualYT || extractYoutube(input) || "（請手動加入連結）";
+        const questions = extractQuestions(input);
+
+        const groupName = document.getElementById('groupName').value.trim() || "Adult Pastoral Zone T1";
+        const roomNumber = document.getElementById('roomNumber').value.trim() || "N007, N008";
+        const meetingTime = document.getElementById('meetingTime').value.trim() || "5:45 pm - 7:30 pm";
+        const meetingDay = parseInt(document.getElementById('meetingDay').value, 10);
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const dayLabel = dayNames[meetingDay];
+
+        const dates = calculateMeetingDates(meetingDay);
+
+        // 1. WhatsApp 訊息格式
+        const waMsg = `*${groupName} cell group meeting*
+Date: ${dates.thisMeeting} (this ${dayLabel}); our next meeting: ${dates.nextMeeting}
+Time: ${meetingTime}
+Room: ${roomNumber}
+
+${youtube}
+
+*講題：*${title}
+*經文：*${scripture}
+${aim ? `*主旨：*${aim}\n` : ""}
+*小組分享問題：*
+${questions}`;
+
+        // 2. AI 指令 (絕對原創搬運)
+        const aiPrompt = `你現在是專業的 PPT 簡報排版設計師。請根據我提供的內容規劃 PPT。
+
+### ⛔ 核心禁令 (最高準則)：
+1. **一字不漏**：內容必須【完全搬運】，🚫 禁止增加、刪減或修改任何文字，🚫 禁止加口號或解釋。
+2. **檔案名稱**：必須僅為【${title}】，嚴禁加任何額外字眼。
+3. **終止點**：簡報必須以「小組討論問題」結束，之後不可有任何結語頁。
+4. **禁止地理錯誤**：SCCEFC 是「南卡城華人播道會」，位於卡加利。
+
+### 🎨 視覺與排版：
+- **安全邊距 (Critical)**：所有文字與螢幕邊緣保留至少 **10%** 空白，防止被電視螢幕切斷。
+- **絕對置中**：所有標題與內文必須「水平與垂直居中」。
+- **問題頁配圖**：每一題小組問題頁，配上一張高清插圖作為視覺點綴，不可遮擋文字。
+- **風格**：清新、簡潔。
+
+### 📅 簡報結構：
+1. **Slide 1 封面**：標題【${title}】、經文【${scripture}】、堂會【南卡城華人播道會】。
+2. **Slide 2 今日經文**：必須列出 (${scripture}) 的【聖經原文全文】。
+3. **Slide 3 證道主旨**：標題「證道主旨」，內容為【${aim}】(若無則跳過)。
+4. **Slide 4 講道內容**：標題「內容摘要」，將內容文字一字不漏搬運 (字多可分頁)。
+5. **小組討論問題**：每一題獨立一頁，搬運原問題文字並配圖。
+
+內容原文：
+${input}`;
+
+        showResult('waOutput', waMsg, 'waTitle', 'copyWaBtn');
+        showResult('aiOutput', aiPrompt, 'aiTitle', 'copyAiBtn');
+        document.getElementById('waTitle').scrollIntoView({ behavior: 'smooth' });
+
+        // 儲存呢次解析到嘅資料，畀 generatePPTX() 用
+        window.lastSermonData = {
+            title, scripture, aim,
+            scriptureText: '', // 稍後自動讀取
+            questions: splitQuestions(questions)
+        };
+        document.getElementById('pptxTitle').style.display = 'block';
+        document.getElementById('pptxHint').style.display = 'block';
+        document.getElementById('genPptxBtn').style.display = 'block';
+        document.getElementById('genScreenBtn').style.display = 'block';
+
+        // 背景自動讀取經文全文，唔使使用者郁手
+        fetchScriptureForCurrentData();
+    }
+
+    // ===== 自動讀取本網站聖經文字檔（同源，冇 CORS 問題）=====
+    const BIBLE_TXT_URL = 'https://cokcok1.github.io/T1/chinese_union_trad_trad.txt';
+    let bibleTextCache = null; // 成個檔案讀一次就快取喺記憶體
+
+    async function loadBibleText() {
+        if (bibleTextCache) return bibleTextCache;
+        const resp = await fetch(BIBLE_TXT_URL);
+        if (!resp.ok) throw new Error('無法讀取聖經文字檔');
+        bibleTextCache = await resp.text();
+        return bibleTextCache;
+    }
+
+    // ===== V9.6 新增：書卷簡稱對照表 =====
+    // 教會網頁有時只會寫簡稱（例如「徒19:1-10」、「彼前1：3-8」），
+    // 之前嘅版本只識別全名（例如「使徒行傳」、「彼得前書」），
+    // 一遇到簡稱就配對唔到，導致 PPT/PDF 讀唔到經文全文。
+    // 呢個表就係用嚟將簡稱對應返去全名。
+    const BIBLE_BOOK_ABBR = {
+        "創":"創世記","出":"出埃及記","利":"利未記","民":"民數記","申":"申命記",
+        "書":"約書亞記","士":"士師記","得":"路得記","撒上":"撒母耳記上","撒下":"撒母耳記下",
+        "王上":"列王紀上","王下":"列王紀下","代上":"歷代志上","代下":"歷代志下",
+        "拉":"以斯拉記","尼":"尼希米記","斯":"以斯帖記","伯":"約伯記","詩":"詩篇",
+        "箴":"箴言","傳":"傳道書","歌":"雅歌","賽":"以賽亞書","耶":"耶利米書",
+        "哀":"耶利米哀歌","結":"以西結書","但":"但以理書","何":"何西阿書","珥":"約珥書",
+        "摩":"阿摩司書","俄":"俄巴底亞書","拿":"約拿書","彌":"彌迦書","鴻":"那鴻書",
+        "哈":"哈巴谷書","番":"西番雅書","該":"哈該書","亞":"撒迦利亞書","瑪":"瑪拉基書",
+        "太":"馬太福音","可":"馬可福音","路":"路加福音","約":"約翰福音","徒":"使徒行傳",
+        "羅":"羅馬書","林前":"哥林多前書","林後":"哥林多後書","加":"加拉太書",
+        "弗":"以弗所書","腓":"腓立比書","西":"歌羅西書",
+        "帖前":"帖撒羅尼迦前書","帖後":"帖撒羅尼迦後書",
+        "提前":"提摩太前書","提後":"提摩太後書","多":"提多書","門":"腓利門書",
+        "來":"希伯來書","雅":"雅各書","彼前":"彼得前書","彼後":"彼得後書",
+        "約一":"約翰一書","約二":"約翰二書","約三":"約翰三書","猶":"猶大書","啟":"啟示錄"
+    };
+
+    // 解析「經文」欄位（例如 "羅馬書1:1-17"、"徒19:1-10"、"彼前1：3-8"），
+    // 回傳 {book, chapter, startVerse, endVerse}。book 一定係全名，方便同聖經文字檔配對。
+    function parseScriptureRef(scripture) {
+        if (!scripture) return null;
+        // 將全名同簡稱合併做一個對照表：key = 使用者可能打嘅字，value = 對應全名
+        const combined = {};
+        Object.keys(BIBLE_BOOK_MAP).forEach(name => { combined[name] = name; });
+        Object.keys(BIBLE_BOOK_ABBR).forEach(abbr => {
+            if (!(abbr in combined)) combined[abbr] = BIBLE_BOOK_ABBR[abbr];
+        });
+        // 由長到短排序先搵，確保「使徒行傳」呢類全名優先過單字簡稱，避免誤判
+        const names = Object.keys(combined).sort((a, b) => b.length - a.length);
+        for (const name of names) {
+            const idx = scripture.indexOf(name);
+            if (idx !== -1) {
+                const fullName = combined[name];
+                const rest = scripture.slice(idx + name.length);
+                const m = rest.match(/(\d+)(?:[:：](\d+)(?:[-–](\d+))?)?/);
+                if (m) {
+                    return {
+                        book: fullName,
+                        chapter: m[1],
+                        startVerse: m[2] ? parseInt(m[2], 10) : null,
+                        endVerse: m[3] ? parseInt(m[3], 10) : (m[2] ? parseInt(m[2], 10) : null)
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    // 由聖經文字檔入面抽出指定經文範圍嘅原文
+    function extractVersesFromBibleText(fullText, ref) {
+        const lines = fullText.split('\n');
+        const prefix = `${ref.book} ${ref.chapter}:`;
+        let result = [];
+        for (const line of lines) {
+            if (!line.startsWith(prefix)) continue;
+            const afterPrefix = line.slice(prefix.length);
+            const vMatch = afterPrefix.match(/^(\d+)\s(.*)$/);
+            if (!vMatch) continue;
+            const verseNum = parseInt(vMatch[1], 10);
+            if (ref.startVerse && (verseNum < ref.startVerse || verseNum > ref.endVerse)) continue;
+            // 去除逐字之間嘅半形空格（原檔排版留低嘅），但保留敬空全形空格「　」
+            const cleanText = vMatch[2].replace(/ /g, '');
+            result.push(`${verseNum} ${cleanText}`);
+        }
+        return result.join('\n');
+    }
+
+    // 將經文按字數自動分頁，每頁大約 maxChars 字（按經節分界，唔會斬斷一節經文）
+    function splitScriptureIntoPages(scriptureText, maxChars) {
+        const verseLines = scriptureText.split('\n').filter(Boolean);
+        const pages = [];
+        let current = [];
+        let currentLen = 0;
+        for (const line of verseLines) {
+            if (currentLen + line.length > maxChars && current.length > 0) {
+                pages.push(current.join('\n'));
+                current = [];
+                currentLen = 0;
+            }
+            current.push(line);
+            currentLen += line.length;
+        }
+        if (current.length) pages.push(current.join('\n'));
+        return pages.length ? pages : [scriptureText];
+    }
+
+    // V9.6：加咗簡單嘅偵錯提示，等你一眼睇到今次有冇解析成功、解析成點
+    function showScriptureDebug(msg) {
+        const box = document.getElementById('scriptureDebug');
+        if (!box) return;
+        box.innerText = msg;
+        box.style.display = msg ? 'block' : 'none';
+    }
+
+    async function fetchScriptureForCurrentData() {
+        const data = window.lastSermonData;
+        if (!data || !data.scripture) return;
+        const ref = parseScriptureRef(data.scripture);
+        if (!ref) {
+            showScriptureDebug(`⚠️ 未能識別經文出處「${data.scripture}」，PPT/PDF 會跳過經文頁，可手動修改「經文」欄位後再試一次。`);
+            return;
+        }
+        try {
+            const fullText = await loadBibleText();
+            const verses = extractVersesFromBibleText(fullText, ref);
+            if (verses) {
+                data.scriptureText = verses;
+                showScriptureDebug(`✅ 已讀取：${ref.book} 第${ref.chapter}章${ref.startVerse ? ` ${ref.startVerse}-${ref.endVerse}節` : ''}`);
+            } else {
+                showScriptureDebug(`⚠️ 已識別為「${ref.book} ${ref.chapter}章」，但喺聖經文字檔搵唔到相應經文，請檢查章節是否正確。`);
+            }
+        } catch (e) {
+            console.warn('自動讀取經文失敗，PPT/PDF 會跳過經文頁：', e);
+            showScriptureDebug(`⚠️ 讀取聖經文字檔失敗（可能係網絡問題），PPT/PDF 會跳過經文頁。`);
+        }
+    }
+
+    // 畫大自然山水裝飾（PptxGenJS 版）。full=true 用喺封面，細版用喺內文頁。
+    function addNatureDecorPptx(slide, PRIMARY, ACCENT, full) {
+        const W = 13.33, H = 7.5;
+        if (full) {
+            slide.addShape('rect', { x: 0, y: 0, w: W, h: H, fill: { color: PRIMARY } });
+            slide.addShape('ellipse', { x: W - 3.2, y: 0.4, w: 1.6, h: 1.6, fill: { color: ACCENT, transparency: 30 } });
+            slide.addShape('triangle', { x: -1, y: H - 2.6, w: 6, h: 2.6, fill: { color: '13385F' }, line: { type: 'none' }, rotate: 0 });
+            slide.addShape('triangle', { x: 2.5, y: H - 3.1, w: 7, h: 3.1, fill: { color: '0F2F4E' }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 7.5, y: H - 2.2, w: 6.5, h: 2.2, fill: { color: '13385F' }, line: { type: 'none' } });
+        } else {
+            slide.addShape('ellipse', { x: W - 1.4, y: 0.3, w: 0.7, h: 0.7, fill: { color: ACCENT, transparency: 55 } });
+            slide.addShape('triangle', { x: -0.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 1.8, y: H - 1.15, w: 4, h: 1.15, fill: { color: PRIMARY, transparency: 85 }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: W - 4.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
+        }
+    }
+
+    // 將已抽取嘅問題文字，按編號拆返做一條一條，方便逐頁做 PPT
+    function splitQuestions(text) {
+        if (!text || text.startsWith('（未能偵測')) return [];
+        return text.split(/\n(?=\s*\d+[\.\、\)])/).map(s => s.trim()).filter(Boolean);
+    }
+
+    async function generatePPTX() {
+        if (typeof PptxGenJS === 'undefined') {
+            alert('⚠️ PowerPoint 產生器未載入成功，請檢查網絡連線後重新整理頁面再試。');
+            return;
+        }
+        const data = window.lastSermonData;
+        if (!data) { alert('請先生成資料。'); return; }
+        if (!data.scriptureText) { await fetchScriptureForCurrentData(); }
+
+        const PRIMARY = '1A4A7C', ACCENT = 'C5A059', WHITE = 'FFFFFF', DARK = '333333';
+        const pptx = new PptxGenJS();
+        pptx.defineLayout({ name: 'WIDE', width: 13.33, height: 7.5 });
+        pptx.layout = 'WIDE';
+
+        // 安全邊距：文字方塊 x/y/w/h 都預留至少 10% 空白
+        const MX = 1.3, MY = 0.75, CW = 13.33 - MX * 2;
+
+        // Slide 1：封面（完整山水剪影背景）
+        let s1 = pptx.addSlide();
+        s1.background = { color: PRIMARY };
+        addNatureDecorPptx(s1, PRIMARY, ACCENT, true);
+        s1.addText('南卡城華人播道會', { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 18, bold: true });
+        s1.addText(data.title, { x: MX, y: 2.6, w: CW, h: 1.8, align: 'center', valign: 'middle', color: WHITE, fontSize: 40, bold: true });
+        s1.addText(data.scripture, { x: MX, y: 4.6, w: CW, h: 0.7, align: 'center', color: ACCENT, fontSize: 22 });
+
+        // Slide 2+：今日經文（太長會自動分頁，短嘅就得一頁）
+        if (data.scriptureText) {
+            const scripturePages = splitScriptureIntoPages(data.scriptureText, 320);
+            scripturePages.forEach((pageText, idx) => {
+                let s2 = pptx.addSlide();
+                s2.background = { color: WHITE };
+                addNatureDecorPptx(s2, PRIMARY, ACCENT, false);
+                const pageLabel = scripturePages.length > 1 ? `今日經文 (${idx + 1}/${scripturePages.length})` : '今日經文';
+                s2.addText(pageLabel, { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
+                if (idx === 0) {
+                    s2.addText(data.scripture, { x: MX, y: 1.5, w: CW, h: 0.5, align: 'center', color: ACCENT, fontSize: 16, italic: true });
+                }
+                s2.addText(pageText, { x: MX, y: idx === 0 ? 2.1 : 1.6, w: CW, h: idx === 0 ? 4.6 : 5.1, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
+            });
+        }
+
+        // Slide 3：證道主旨（有先出）
+        if (data.aim) {
+            let s3 = pptx.addSlide();
+            s3.background = { color: WHITE };
+            addNatureDecorPptx(s3, PRIMARY, ACCENT, false);
+            s3.addText('證道主旨', { x: MX, y: MY, w: CW, h: 0.8, align: 'center', color: PRIMARY, fontSize: 26, bold: true });
+            s3.addText(data.aim, { x: MX, y: 2.2, w: CW, h: 3.5, align: 'center', valign: 'middle', color: DARK, fontSize: 22, lineSpacing: 32 });
+        }
+
+        // 問題頁：每題獨立一頁，配大自然山水裝飾，維持統一風格
+        data.questions.forEach((q, i) => {
+            let s = pptx.addSlide();
+            s.background = { color: WHITE };
+            addNatureDecorPptx(s, PRIMARY, ACCENT, false);
+            s.addShape('rect', { x: 0, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            s.addShape('rect', { x: 13.33 - 0.35, y: 0, w: 0.35, h: 7.5, fill: { color: ACCENT } });
+            s.addText(`小組分享問題 ${i + 1} / ${data.questions.length}`, { x: MX, y: MY, w: CW, h: 0.6, align: 'center', color: ACCENT, fontSize: 16, bold: true });
+            s.addText(q.replace(/^\d+[\.\、\)]\s*/, ''), { x: MX, y: 1.6, w: CW, h: 5.2, align: 'center', valign: 'middle', color: DARK, fontSize: 24, lineSpacing: 34 });
+        });
+
+        pptx.writeFile({ fileName: `${data.title}.pptx` });
+    }
+
+    // ===== 大螢幕播放版（純網頁瀏覽，唔會跳列印視窗，適合直接投影）=====
+    async function generateScreenView() {
+        const data = window.lastSermonData;
+        if (!data) { alert('請先生成資料。'); return; }
+        if (!data.scriptureText) { await fetchScriptureForCurrentData(); }
+
+        const PRIMARY = '#1A4A7C', ACCENT = '#C5A059', DARK = '#333333';
+
+        function slideHtml(innerHtml, isCover, pageLabel) {
+            return `<section class="slide ${isCover ? 'cover' : ''}">
+                <div class="mountain m1"></div><div class="mountain m2"></div><div class="mountain m3"></div>
+                <div class="sun"></div>
+                <div class="content">${innerHtml}</div>
+                ${pageLabel ? `<div class="page-tag">${pageLabel}</div>` : ''}
+            </section>`;
+        }
+
+        let slides = [];
+        // 封面：講題 + 經文出處
+        slides.push(slideHtml(`
+            <div class="church-name">南卡城華人播道會</div>
+            <div class="main-title">${data.title}</div>
+            <div class="scripture-ref">${data.scripture}</div>
+        `, true));
+
+        // 經文（按字數自動分頁，短就一頁，長就自動分兩三頁）
+        if (data.scriptureText) {
+            const scripturePages = splitScriptureIntoPages(data.scriptureText, 320);
+            scripturePages.forEach((pageText, idx) => {
+                const label = scripturePages.length > 1 ? `今日經文 (${idx + 1}/${scripturePages.length})` : '今日經文';
+                slides.push(slideHtml(`
+                    <div class="section-title">${label}</div>
+                    ${idx === 0 ? `<div class="scripture-ref" style="margin-bottom:20px;">${data.scripture}</div>` : ''}
+                    <div class="body-text scripture-body">${pageText.replace(/\n/g, '<br>')}</div>
+                `, false));
+            });
+        }
+
+        // 其他內容（證道主旨；有先出，冇就跳過）
+        if (data.aim) {
+            slides.push(slideHtml(`
+                <div class="section-title">證道主旨</div>
+                <div class="body-text">${data.aim}</div>
+            `, false));
+        }
+
+        // 小組討論問題：每題一頁
+        data.questions.forEach((q, i) => {
+            slides.push(slideHtml(`
+                <div class="page-num">小組分享問題 ${i + 1} / ${data.questions.length}</div>
+                <div class="question-text">${q.replace(/^\d+[\.\、\)]\s*/, '')}</div>
+            `, false));
+        });
+
+        const win = window.open('', '_blank');
+        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${data.title}</title>
+        <style>
+            * { box-sizing: border-box; }
+            html, body { margin: 0; padding: 0; height: 100%; background: #000; font-family: 'Microsoft JhengHei', sans-serif;
+                scroll-snap-type: y mandatory; overflow-y: scroll; }
+            .slide { position: relative; width: 100vw; height: 100vh; overflow: hidden; scroll-snap-align: start;
+                display: flex; align-items: center; justify-content: center; text-align: center; background: #fff; }
+            .slide.cover { background: ${PRIMARY}; }
+            .content { position: relative; z-index: 2; padding: 0 10%; max-width: 90%; }
+            .church-name { color: ${ACCENT}; font-size: 2.2vw; font-weight: bold; margin-bottom: 3vh; }
+            .main-title { color: #fff; font-size: 4.2vw; font-weight: bold; margin-bottom: 2.5vh; line-height: 1.3; }
+            .scripture-ref { color: ${ACCENT}; font-size: 1.8vw; }
+            .section-title { color: ${PRIMARY}; font-size: 2.6vw; font-weight: bold; margin-bottom: 3vh; }
+            .body-text { color: ${DARK}; font-size: 1.7vw; line-height: 1.8; }
+            .scripture-body { font-size: 1.5vw; line-height: 1.9; }
+            .page-num { color: ${ACCENT}; font-size: 1.3vw; font-weight: bold; margin-bottom: 3.5vh; }
+            .question-text { color: ${DARK}; font-size: 2.1vw; line-height: 1.8; }
+            .page-tag { position: absolute; bottom: 20px; right: 30px; color: #aaa; font-size: 0.9vw; z-index: 2; }
+            .mountain { position: absolute; bottom: 0; width: 0; height: 0; z-index: 1; }
+            .cover .m1 { border-left: 18vw solid transparent; border-right: 18vw solid transparent; border-bottom: 10vh solid #13385F; left: -4vw; }
+            .cover .m2 { border-left: 24vw solid transparent; border-right: 24vw solid transparent; border-bottom: 12vh solid #0F2F4E; left: 16vw; }
+            .cover .m3 { border-left: 20vw solid transparent; border-right: 20vw solid transparent; border-bottom: 8vh solid #13385F; right: -4vw; left: auto; }
+            .slide:not(.cover) .m1 { border-left: 13vw solid transparent; border-right: 13vw solid transparent; border-bottom: 4vh solid #eee; left: -3vw; }
+            .slide:not(.cover) .m2 { border-left: 16vw solid transparent; border-right: 16vw solid transparent; border-bottom: 4.5vh solid #f2f2f2; right: -3vw; left: auto; }
+            .slide:not(.cover) .m3 { display: none; }
+            .sun { position: absolute; top: 6vh; right: 6vw; width: 5vw; height: 5vw; border-radius: 50%; background: ${ACCENT}; opacity: 0.5; z-index: 1; }
+            .nav-hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); color: rgba(0,0,0,0.35);
+                font-size: 12px; z-index: 10; background: rgba(255,255,255,0.6); padding: 3px 10px; border-radius: 10px; }
+        </style>
+        </head><body>${slides.join('')}
+        <div class="nav-hint">↑↓ / 空白鍵：換頁　　F11：全螢幕</div>
+        <script>
+            const slides = document.querySelectorAll('.slide');
+            let cur = 0;
+            function goTo(i) { if (i < 0 || i >= slides.length) return; cur = i; slides[cur].scrollIntoView({behavior:'smooth'}); }
+            document.addEventListener('keydown', function(e) {
+                if (['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)) { e.preventDefault(); goTo(cur + 1); }
+                if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); goTo(cur - 1); }
+            });
+        <\/script>
+        </body></html>`);
+        win.document.close();
+    }
+
+    // 中文書卷名 -> cnbible.com (和合本繁體) 網址代碼，用嚟自動搵返經文連結
+    const BIBLE_BOOK_MAP = {
+        "創世記":"genesis","出埃及記":"exodus","利未記":"leviticus","民數記":"numbers","申命記":"deuteronomy",
+        "約書亞記":"joshua","士師記":"judges","路得記":"ruth","撒母耳記上":"1_samuel","撒母耳記下":"2_samuel",
+        "列王紀上":"1_kings","列王紀下":"2_kings","歷代志上":"1_chronicles","歷代志下":"2_chronicles",
+        "以斯拉記":"ezra","尼希米記":"nehemiah","以斯帖記":"esther","約伯記":"job","詩篇":"psalms",
+        "箴言":"proverbs","傳道書":"ecclesiastes","雅歌":"songs","以賽亞書":"isaiah","耶利米書":"jeremiah",
+        "耶利米哀歌":"lamentations","以西結書":"ezekiel","但以理書":"daniel","何西阿書":"hosea","約珥書":"joel",
+        "阿摩司書":"amos","俄巴底亞書":"obadiah","約拿書":"jonah","彌迦書":"micah","那鴻書":"nahum",
+        "哈巴谷書":"habakkuk","西番雅書":"zephaniah","哈該書":"haggai","撒迦利亞書":"zechariah","瑪拉基書":"malachi",
+        "馬太福音":"matthew","馬可福音":"mark","路加福音":"luke","約翰福音":"john","使徒行傳":"acts",
+        "羅馬書":"romans","哥林多前書":"1_corinthians","哥林多後書":"2_corinthians","加拉太書":"galatians",
+        "以弗所書":"ephesians","腓立比書":"philippians","歌羅西書":"colossians",
+        "帖撒羅尼迦前書":"1_thessalonians","帖撒羅尼迦後書":"2_thessalonians",
+        "提摩太前書":"1_timothy","提摩太後書":"2_timothy","提多書":"titus","腓利門書":"philemon",
+        "希伯來書":"hebrews","雅各書":"james","彼得前書":"1_peter","彼得後書":"2_peter",
+        "約翰一書":"1_john","約翰二書":"2_john","約翰三書":"3_john","猶大書":"jude","啟示錄":"revelation"
+    };
+
+    // 解析「經文」欄位（例如 "羅馬書1:1-17"、"徒19:1-10"），搵出書卷代碼同章數，回傳 cnbible.com 連結
+    function buildScriptureUrl(scripture) {
+        if (!scripture) return null;
+        const ref = parseScriptureRef(scripture);
+        if (!ref) return null;
+        const slug = BIBLE_BOOK_MAP[ref.book];
+        if (!slug) return null;
+        return `https://cnbible.com/cu/${slug}/${ref.chapter}.htm`;
+    }
+
+    async function lookupScripture() {
+        // 已由 fetchScriptureForCurrentData() 自動處理，呢個函數保留做後備（cnbible.com 連結），暫時未有 UI 掣連過去。
+        return;
+    }
+
+    function extractInfo(text, regex) { const m = text.match(regex); return m ? m[1].trim() : null; }
+    function extractYoutube(text) { const r = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s\n\r\t<>"]+/i; const m = text.match(r); return m ? m[0] : null; }
+
+    function extractQuestions(text) {
+        // 盡可能涵蓋教會網頁曾出現/可能出現嘅各種講法，按出現位置最早者為準
+        const kw = [
+            "小組進深分享問題", "小組進深分討論問題", "小組討論分享問題",
+            "小組證道進深分享問題", "小組証道進深分享問題",
+            "小組分享問題", "小組討論問題", "小組問題",
+            "討論問題", "討論題目", "分享問題", "反思問題",
+            "小組反思問題", "小組反思分享問題",
+            "生命應用問題", "應用問題", "生活應用",
+            "小組互動問題", "查經問題", "小組查經問題",
+            "小組進深討論問題", "小組深入討論問題",
+            // 簡體備用（以防國語堂頁面格式混入）
+            "小组进深分享问题", "小组讨论问题", "小组分享问题"
+        ];
+        let startIdx = -1; let matchedKw = "";
+        for (let k of kw) { let idx = text.indexOf(k); if (idx !== -1 && (startIdx === -1 || idx < startIdx)) { startIdx = idx; matchedKw = k; } }
+
+        let res = null;
+
+        if (startIdx !== -1) {
+            // 情景一：網頁有寫明 Title
+            res = text.substring(startIdx + matchedKw.length).trim();
+            if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
+        } else {
+            // 情景二：網頁漏咗寫 Title，直接接編號問題（1. 2. 3. …）
+            // 由「經文／主旨／講題」呢類資訊行之後開始搜，避免誤中經文入面嘅數字（例如 徒28:1-16）
+            const afterMarkers = ["主旨", "經文", "証道主旨", "證道主旨", "講題", "證道主題", "証道主題"];
+            let searchFrom = 0;
+            for (let m of afterMarkers) {
+                let idx = text.indexOf(m);
+                if (idx !== -1) {
+                    let lineEnd = text.indexOf("\n", idx);
+                    if (lineEnd === -1) lineEnd = idx + m.length;
+                    if (lineEnd > searchFrom) searchFrom = lineEnd;
+                }
+            }
+            const numMatch = text.slice(searchFrom).match(/\n\s*1[\.、\)]\s*/);
+            if (numMatch) {
+                res = text.slice(searchFrom + numMatch.index).trim();
+            }
+        }
+
+        if (!res) return "（未能偵測問題，請檢查關鍵字或手動貼上）";
+        const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "會務報告"];
+        let endIdx = res.length;
+        for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
+        return res.substring(0, endIdx).trim();
+    }
+
+    function calculateMeetingDates(targetDay = 5) {
+        // targetDay: 0=Sunday ... 6=Saturday (default 5=Friday for T1)
+        const d = new Date(); const f = new Date(d); f.setDate(d.getDate() + (targetDay - d.getDay() + 7) % 7);
+        const opt = { month: 'short', day: 'numeric', year: 'numeric' }; const n = new Date(f); n.setDate(f.getDate() + 14);
+        return { thisMeeting: f.toLocaleDateString('en-US', opt), nextMeeting: n.toLocaleDateString('en-US', opt) };
+    }
+
+    function showResult(id, content, titleId, btnId) {
+        document.getElementById(id).innerText = content;
+        document.getElementById(id).style.display = "block";
+        document.getElementById(titleId).style.display = "block";
+        document.getElementById(btnId).style.display = "block";
+    }
+
+    function copyContent(id, msg) { navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => alert(msg)); }
+
+    function copyToGemini() {
+        const text = document.getElementById('aiOutput').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ 指令已複製！\n即將前往 AI 頁面。");
+            window.open("https://gemini.google.com/app", "_blank");
+        });
+    }
+</script>
+</body>
+</html>
