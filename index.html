@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V9.6</title>
+    <title>SCCEFC 組長全能助手 V9.7</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -34,7 +34,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V9.6</h1>
+    <h1>組長全能助手 V9.7</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     
@@ -177,7 +177,7 @@ ${input}`;
         return bibleTextCache;
     }
 
-    // ===== V9.6 新增：書卷簡稱對照表 =====
+    // ===== V9.7 新增：書卷簡稱對照表 =====
     // 教會網頁有時只會寫簡稱（例如「徒19:1-10」、「彼前1：3-8」），
     // 之前嘅版本只識別全名（例如「使徒行傳」、「彼得前書」），
     // 一遇到簡稱就配對唔到，導致 PPT/PDF 讀唔到經文全文。
@@ -284,7 +284,7 @@ ${input}`;
         return pages.length ? pages : [scriptureText];
     }
 
-    // V9.6：加咗簡單嘅偵錯提示，等你一眼睇到今次有冇解析成功、解析成點
+    // V9.7：加咗簡單嘅偵錯提示，等你一眼睇到今次有冇解析成功、解析成點
     function showScriptureDebug(msg) {
         const box = document.getElementById('scriptureDebug');
         if (!box) return;
@@ -332,10 +332,18 @@ ${input}`;
         }
     }
 
-    // 將已抽取嘅問題文字，按編號拆返做一條一條，方便逐頁做 PPT
+    // 將已抽取嘅問題文字，拆返做一條一條，方便逐頁做 PPT
+    // 情況一：有數字編號（1. 2. 3. …）— 按編號拆
+    // 情況二：冇編號，淨係用空行分隔每條問題 — 按空行拆
     function splitQuestions(text) {
         if (!text || text.startsWith('（未能偵測')) return [];
-        return text.split(/\n(?=\s*\d+[\.\、\)])/).map(s => s.trim()).filter(Boolean);
+        const numberedCount = (text.match(/(^|\n)\s*\d+[\.\、\)]/g) || []).length;
+        if (numberedCount >= 2) {
+            return text.split(/\n(?=\s*\d+[\.\、\)])/).map(s => s.trim()).filter(Boolean);
+        }
+        // 冇編號：改用連續空行（一行或以上嘅空白行）做分界
+        const byBlankLine = text.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+        return byBlankLine.length > 1 ? byBlankLine : [text.trim()];
     }
 
     async function generatePPTX() {
