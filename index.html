@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V10.1</title>
+    <title>SCCEFC 組長全能助手 V10.2</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -34,7 +34,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V10.1</h1>
+    <h1>組長全能助手 V10.2</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     
@@ -147,7 +147,7 @@ ${questions}`;
         return bibleTextCache;
     }
 
-    // ===== V10.1 新增：書卷簡稱對照表 =====
+    // ===== V10.2 新增：書卷簡稱對照表 =====
     // 教會網頁有時只會寫簡稱（例如「徒19:1-10」、「彼前1：3-8」），
     // 之前嘅版本只識別全名（例如「使徒行傳」、「彼得前書」），
     // 一遇到簡稱就配對唔到，導致 PPT/PDF 讀唔到經文全文。
@@ -264,7 +264,7 @@ ${questions}`;
         return pages.length ? pages : [scriptureText];
     }
 
-    // V10.1：加咗簡單嘅偵錯提示，等你一眼睇到今次有冇解析成功、解析成點
+    // V10.2：加咗簡單嘅偵錯提示，等你一眼睇到今次有冇解析成功、解析成點
     function showScriptureDebug(msg) {
         const box = document.getElementById('scriptureDebug');
         if (!box) return;
@@ -342,21 +342,36 @@ ${questions}`;
         if (full) {
             slide.addShape('rect', { x: 0, y: 0, w: W, h: H, fill: { color: PRIMARY } });
             slide.addShape('ellipse', { x: W - 3.2, y: 0.4, w: 1.6, h: 1.6, fill: { color: ACCENT, transparency: 30 } });
-            slide.addShape('triangle', { x: -1, y: H - 2.6, w: 6, h: 2.6, fill: { color: '13385F' }, line: { type: 'none' }, rotate: 0 });
-            slide.addShape('triangle', { x: 2.5, y: H - 3.1, w: 7, h: 3.1, fill: { color: '0F2F4E' }, line: { type: 'none' } });
-            slide.addShape('triangle', { x: 7.5, y: H - 2.2, w: 6.5, h: 2.2, fill: { color: '13385F' }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: -1, y: H - 1.5, w: 6, h: 1.5, fill: { color: '13385F' }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 2.8, y: H - 1.8, w: 7, h: 1.8, fill: { color: '0F2F4E' }, line: { type: 'none' } });
+            slide.addShape('triangle', { x: 8, y: H - 1.3, w: 6, h: 1.3, fill: { color: '13385F' }, line: { type: 'none' } });
         } else {
             slide.addShape('ellipse', { x: W - 1.4, y: 0.3, w: 0.7, h: 0.7, fill: { color: ACCENT, transparency: 55 } });
-            slide.addShape('triangle', { x: -0.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
-            slide.addShape('triangle', { x: 1.8, y: H - 1.15, w: 4, h: 1.15, fill: { color: PRIMARY, transparency: 85 }, line: { type: 'none' } });
-            slide.addShape('triangle', { x: W - 4.5, y: H - 0.9, w: 3.5, h: 0.9, fill: { color: PRIMARY, transparency: 80 }, line: { type: 'none' } });
+            // 內文頁唔再畫山形底色，避免遮住文字；只留一條細細嘅金色底線
+            slide.addShape('rect', { x: 0.6, y: H - 0.35, w: W - 1.2, h: 0.04, fill: { color: ACCENT, transparency: 40 }, line: { type: 'none' } });
         }
     }
 
     // 將已抽取嘅問題文字，拆返做一條一條，方便逐頁做 PPT
     // 情況一：有數字編號（1. 2. 3. …）— 按編號拆
     // 情況二：冇編號，淨係用空行分隔每條問題 — 按空行拆
+    // 清理單條問題：去走網頁複製出嚟嘅亂碼（□OBJ□）同硬斷行；如果第一行似標題就同內文分開
+    function cleanQuestionText(q) {
+        const t = q.replace(/[\uFFFC\u200B-\u200D\uFEFF]/g, '').replace(/^\s*\d+[\.\、\)]\s*/, '');
+        const lines = t.split(/\n+/).map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return '';
+        const join = arr => arr.reduce((acc, l) => !acc ? l : acc + (/[A-Za-z0-9]$/.test(acc) && /^[A-Za-z0-9]/.test(l) ? ' ' : '') + l, '');
+        if (lines.length > 1 && lines[0].length <= 25 && !/[。？！?!，,]$/.test(lines[0])) {
+            return lines[0] + '\n' + join(lines.slice(1));
+        }
+        return join(lines);
+    }
+
     function splitQuestions(text) {
+        return splitQuestionsRaw(text).map(cleanQuestionText).filter(Boolean);
+    }
+
+    function splitQuestionsRaw(text) {
         if (!text || text.startsWith('（未能偵測')) return [];
         const numberedCount = (text.match(/(^|\n)\s*\d+[\.\、\)]/g) || []).length;
         if (numberedCount >= 2) {
@@ -423,7 +438,7 @@ ${questions}`;
                 if (idx === 0) {
                     s2.addText(data.scripture, { x: MX, y: 1.5, w: CW, h: 0.5, align: 'center', color: ACCENT, fontSize: 16, italic: true });
                 }
-                s2.addText(pageText, { x: MX, y: idx === 0 ? 2.1 : 1.6, w: CW, h: idx === 0 ? 4.6 : 5.1, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
+                s2.addText(pageText, { x: MX, y: idx === 0 ? 2.1 : 1.6, w: CW, h: idx === 0 ? 4.4 : 4.9, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
             });
         }
 
@@ -449,13 +464,20 @@ ${questions}`;
             const imgData = await fetchImageAsBase64(`https://picsum.photos/seed/${encodeURIComponent(seed)}/${Math.round(imgW * 150)}/${Math.round(imgH * 150)}`);
             if (imgData) {
                 s.addImage({ data: imgData, x: imgX, y: imgY, w: imgW, h: imgH, rounding: true });
-            } else {
-                // 攞唔到相：用返裝飾色塊做後備，唔會出現空白
-                addNatureDecorPptx(s, PRIMARY, ACCENT, false);
             }
 
-            s.addText(`小組分享問題 ${i + 1} / ${data.questions.length}`, { x: 0.6, y: MY, w: textW - 0.6, h: 0.6, align: 'left', color: ACCENT, fontSize: 15, bold: true });
-            s.addText(q.replace(/^\d+[\.\、\)]\s*/, ''), { x: 0.6, y: 1.6, w: textW - 0.6, h: 5.2, align: 'left', valign: 'middle', color: DARK, fontSize: 21, lineSpacing: 30 });
+            // 攞到相：文字擺左半邊；攞唔到相：文字置中全幅，唔會留空
+            const tx = imgData ? 0.7 : MX, tw = imgData ? textW - 0.8 : CW, al = imgData ? 'left' : 'center';
+            const nl = q.indexOf('\n');
+            const heading = nl > -1 ? q.slice(0, nl) : '';
+            const body = nl > -1 ? q.slice(nl + 1) : q;
+            const len = q.length;
+            const fs = len > 170 ? 17 : len > 120 ? 19 : 22;
+            s.addText(`小組分享問題 ${i + 1} / ${data.questions.length}`, { x: tx, y: MY, w: tw, h: 0.5, align: al, color: ACCENT, fontSize: 15, bold: true });
+            const runs = [];
+            if (heading) runs.push({ text: heading, options: { bold: true, color: PRIMARY, fontSize: fs + 4, breakLine: true } });
+            runs.push({ text: body, options: { color: DARK, fontSize: fs } });
+            s.addText(runs, { x: tx, y: 1.4, w: tw, h: 5.2, align: al, valign: 'top', lineSpacing: Math.round(fs * 1.55), paraSpaceAfter: 8 });
         }
 
         pptx.writeFile({ fileName: `${data.title}.pptx` });
@@ -515,7 +537,7 @@ ${questions}`;
                 <div class="q-split">
                     <div class="q-text-col">
                         <div class="page-num">小組分享問題 ${i + 1} / ${data.questions.length}</div>
-                        <div class="question-text">${q.replace(/^\d+[\.\、\)]\s*/, '')}</div>
+                        <div class="question-text">${(() => { const nl = q.indexOf('\n'); return nl > -1 ? `<strong style="color:${PRIMARY}; display:block; margin-bottom:1.2vh;">${q.slice(0, nl)}</strong>${q.slice(nl + 1)}` : q; })()}</div>
                     </div>
                     <div class="q-img-col"><img src="${imgUrl}" alt="" loading="lazy"></div>
                 </div>
@@ -605,7 +627,7 @@ ${questions}`;
         return;
     }
 
-    // V10.1：教會網頁第二行有時冇寫「經文：」標籤，淨係直接寫「羅馬書1:1-17」或者「徒19:1-10」呢類格式。
+    // V10.2：教會網頁第二行有時冇寫「經文：」標籤，淨係直接寫「羅馬書1:1-17」或者「徒19:1-10」呢類格式。
     // 呢個 function 專門用嚟喺冇標籤嘅情況下，掃描頭幾行文字，搵出「一開始就係書卷名/簡稱 + 數字」嘅一行，當成經文出處。
     function looksLikeScriptureLine(line) {
         const trimmed = line.trim();
