@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V10.4</title>
+    <title>SCCEFC 組長全能助手 V10.5</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -37,7 +37,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V10.4</h1>
+    <h1>組長全能助手 V10.5</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     
@@ -444,7 +444,7 @@ ${questions}`;
                 if (idx === 0) {
                     s2.addText(data.scripture, { x: MX, y: 1.5, w: CW, h: 0.5, align: 'center', color: ACCENT, fontSize: 16, italic: true });
                 }
-                s2.addText(pageText, { x: MX, y: idx === 0 ? 2.1 : 1.6, w: CW, h: idx === 0 ? 4.4 : 4.9, align: 'center', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
+                s2.addText(pageText, { x: MX, y: idx === 0 ? 2.1 : 1.6, w: CW, h: idx === 0 ? 4.4 : 4.9, align: 'left', valign: 'middle', color: DARK, fontSize: 18, lineSpacing: 28 });
             });
         }
 
@@ -573,7 +573,7 @@ ${questions}`;
             .scripture-ref { color: ${ACCENT}; font-size: 1.8vw; }
             .section-title { color: ${PRIMARY}; font-size: 2.6vw; font-weight: bold; margin-bottom: 3vh; }
             .body-text { color: ${DARK}; font-size: 1.7vw; line-height: 1.8; }
-            .scripture-body { font-size: 1.5vw; line-height: 1.9; }
+            .scripture-body { font-size: 1.5vw; line-height: 1.9; text-align: left; }
             .page-num { color: ${ACCENT}; font-size: 1.3vw; font-weight: bold; margin-bottom: 3.5vh; }
             .question-text { color: ${DARK}; font-size: 2.1vw; line-height: 1.8; }
             .page-tag { position: absolute; bottom: 20px; right: 30px; color: #aaa; font-size: 0.9vw; z-index: 2; }
@@ -677,7 +677,6 @@ ${questions}`;
             '<div style="font-weight:bold;color:#1a4a7c;font-size:1.1rem;margin-bottom:6px;">✅ PDF 已製作好</div>' +
             '<div style="font-size:0.85rem;color:#666;margin-bottom:12px;word-break:break-all;"></div>' +
             '<button type="button" id="pdfShareBtn" style="background:#16a085;">📤 分享／儲存到「檔案」</button>' +
-            '<button type="button" id="pdfDownBtn" style="background:#1a4a7c;">⬇️ 下載 PDF</button>' +
             '<button type="button" id="pdfCloseBtn" style="background:#999;margin-bottom:0;">關閉</button></div>';
         document.body.appendChild(ov);
         ov.querySelector('div > div:nth-child(2)').textContent = name;
@@ -697,7 +696,6 @@ ${questions}`;
             } catch (e) { if (e && e.name === 'AbortError') return; }
             download();
         };
-        document.getElementById('pdfDownBtn').onclick = download;
         document.getElementById('pdfCloseBtn').onclick = function() { ov.remove(); };
     }
 
