@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V10.6</title>
+    <title>SCCEFC 組長全能助手 V10.7</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -37,7 +37,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V10.6</h1>
+    <h1>組長全能助手 V10.7</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     
@@ -377,12 +377,24 @@ ${questions}`;
         return splitQuestionsRaw(text).map(cleanQuestionText).filter(Boolean);
     }
 
+    // 按「順序編號」拆題：1 → 2 → 3 …，編號後面可以係 . 、 ) , ： 或者淨係一個空格（例如「5 重新認識…」）。
+    // 一定要順住 1、2、3 嘅次序先當係新一題，所以內文入面偶然出現嘅數字唔會誤拆。
     function splitQuestionsRaw(text) {
         if (!text || text.startsWith('（未能偵測')) return [];
-        const numberedCount = (text.match(/(^|\n)\s*[\d１-９]+[\.\、\)）．]/g) || []).length;
-        if (numberedCount >= 2) {
-            return text.split(/\n(?=\s*[\d１-９]+[\.\、\)）．])/).map(s => s.trim()).filter(Boolean);
+        const markerRe = /^[ \t　]*([\d１-９]{1,2})(?:[\.\、\)）．,，:：]|[ \t　]+)[ \t　]*/;
+        const toNum = s => parseInt(s.replace(/[１-９]/g, ch => String(ch.charCodeAt(0) - 0xFF10)), 10);
+        const items = [];
+        let expected = 1;
+        for (const line of text.split('\n')) {
+            const m = line.match(markerRe);
+            if (m && toNum(m[1]) === expected) {
+                items.push(line.slice(m[0].length));
+                expected++;
+            } else if (items.length) {
+                items[items.length - 1] += '\n' + line;
+            }
         }
+        if (items.length >= 2) return items.map(s => s.trim()).filter(Boolean);
         // 冇編號：改用連續空行（一行或以上嘅空白行）做分界
         const byBlankLine = text.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
         return byBlankLine.length > 1 ? byBlankLine : [text.trim()];
@@ -548,7 +560,7 @@ ${questions}`;
                 <div class="q-split">
                     <div class="q-text-col">
                         <div class="page-num">小組分享問題 ${i + 1} / ${data.questions.length}</div>
-                        <div class="question-text">${(() => { const nl = q.indexOf('\n'); return nl > -1 ? `<strong style="color:${PRIMARY}; display:block; margin-bottom:1.2vh;">${q.slice(0, nl)}</strong>${q.slice(nl + 1)}` : q; })()}</div>
+                        <div class="question-text" style="font-size:${q.length > 190 ? 1.5 : q.length > 130 ? 1.8 : 2.1}vw;line-height:${q.length > 130 ? 1.65 : 1.8};">${(() => { const nl = q.indexOf('\n'); return nl > -1 ? `<strong style="color:${PRIMARY}; display:block; margin-bottom:1.2vh;">${q.slice(0, nl)}</strong>${q.slice(nl + 1)}` : q; })()}</div>
                     </div>
                     <div class="q-img-col"><img src="${imgUrl}" alt="" ${forExport ? 'crossorigin="anonymous"' : 'loading="lazy"'}></div>
                 </div>
@@ -837,8 +849,8 @@ ${questions}`;
             // 情景二：冇「小組問題」呢類標題 → 以編號 1. 2. 3. … 開頭嘅段落就係小組問題。
             // 教會網頁格式：講題 → 經文 → （可能有其他內容／大綱）→ 小組問題，
             // 所以如果有幾組編號（例如大綱 1-4 之後再有問題 1-5），揀「最後一組」由 1 開始嘅。
-            const startRe = /(^|\n)[ \t　]*[1１][\.\、\)）．]/g;
-            const secondRe = /\n[ \t　]*[2２][\.\、\)）．]/;
+            const startRe = /(^|\n)[ \t　]*[1１](?:[\.\、\)）．,，:：]|[ \t　]+)/g;
+            const secondRe = /\n[ \t　]*[2２](?:[\.\、\)）．,，:：]|[ \t　]+)/;
             const starts = [];
             let sm;
             while ((sm = startRe.exec(text)) !== null) starts.push(sm.index + sm[1].length);
@@ -851,6 +863,9 @@ ${questions}`;
         }
 
         if (!res) return "（未能偵測問題，請檢查關鍵字或手動貼上）";
+        // 有啲網頁喺問題後面會再重複一次「經文：」「講題：」等資訊行，唔應該當係最後一題嘅內容
+        const tailIdx = res.search(/\n[ \t　]*(?:經文|講題|證道主題|証道主題|證道主旨|証道主旨|主旨)[ \t　]*[：:]/);
+        if (tailIdx > 0) res = res.slice(0, tailIdx);
         const stop = ["Newer Post", "Older Post", "SOUTH CALGARY", "340 39 AVENUE", "Service Times", "會務報告"];
         let endIdx = res.length;
         for (let s of stop) { let si = res.indexOf(s); if (si !== -1 && si < endIdx) endIdx = si; }
