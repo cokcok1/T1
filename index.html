@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCCEFC 組長全能助手 V10.5</title>
+    <title>SCCEFC 組長全能助手 V10.6</title>
     <style>
         :root { --primary: #1a4a7c; --accent: #c5a059; --bg: #f4f7f9; --whatsapp: #25D366; --link: #3498db; }
         body { font-family: 'Microsoft JhengHei', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
@@ -37,7 +37,7 @@
     </div>
     
     <div style="text-align: center; color: var(--accent); font-weight: bold; margin-bottom: 5px;">⛪ 南卡城華人播道會 (SCCEFC)</div>
-    <h1>組長全能助手 V10.5</h1>
+    <h1>組長全能助手 V10.6</h1>
     
     <span class="input-title">第一步：貼上教會網頁文字 (全選 Ctrl+A)</span>
     
@@ -363,7 +363,7 @@ ${questions}`;
     // 情況二：冇編號，淨係用空行分隔每條問題 — 按空行拆
     // 清理單條問題：去走網頁複製出嚟嘅亂碼（□OBJ□）同硬斷行；如果第一行似標題就同內文分開
     function cleanQuestionText(q) {
-        const t = q.replace(/[\uFFFC\u200B-\u200D\uFEFF]/g, '').replace(/^\s*\d+[\.\、\)]\s*/, '');
+        const t = q.replace(/[\uFFFC\u200B-\u200D\uFEFF]/g, '').replace(/^\s*[\d１-９]+[\.\、\)）．]\s*/, '');
         const lines = t.split(/\n+/).map(l => l.trim()).filter(Boolean);
         if (!lines.length) return '';
         const join = arr => arr.reduce((acc, l) => !acc ? l : acc + (/[A-Za-z0-9]$/.test(acc) && /^[A-Za-z0-9]/.test(l) ? ' ' : '') + l, '');
@@ -379,9 +379,9 @@ ${questions}`;
 
     function splitQuestionsRaw(text) {
         if (!text || text.startsWith('（未能偵測')) return [];
-        const numberedCount = (text.match(/(^|\n)\s*\d+[\.\、\)]/g) || []).length;
+        const numberedCount = (text.match(/(^|\n)\s*[\d１-９]+[\.\、\)）．]/g) || []).length;
         if (numberedCount >= 2) {
-            return text.split(/\n(?=\s*\d+[\.\、\)])/).map(s => s.trim()).filter(Boolean);
+            return text.split(/\n(?=\s*[\d１-９]+[\.\、\)）．])/).map(s => s.trim()).filter(Boolean);
         }
         // 冇編號：改用連續空行（一行或以上嘅空白行）做分界
         const byBlankLine = text.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
@@ -677,6 +677,7 @@ ${questions}`;
             '<div style="font-weight:bold;color:#1a4a7c;font-size:1.1rem;margin-bottom:6px;">✅ PDF 已製作好</div>' +
             '<div style="font-size:0.85rem;color:#666;margin-bottom:12px;word-break:break-all;"></div>' +
             '<button type="button" id="pdfShareBtn" style="background:#16a085;">📤 分享／儲存到「檔案」</button>' +
+            '<button type="button" id="pdfPreviewBtn" style="background:#1a4a7c;">👁️ 預覽 PDF</button>' +
             '<button type="button" id="pdfCloseBtn" style="background:#999;margin-bottom:0;">關閉</button></div>';
         document.body.appendChild(ov);
         ov.querySelector('div > div:nth-child(2)').textContent = name;
@@ -696,6 +697,7 @@ ${questions}`;
             } catch (e) { if (e && e.name === 'AbortError') return; }
             download();
         };
+        document.getElementById('pdfPreviewBtn').onclick = download;
         document.getElementById('pdfCloseBtn').onclick = function() { ov.remove(); };
     }
 
@@ -832,22 +834,20 @@ ${questions}`;
             res = text.substring(startIdx + matchedKw.length).trim();
             if (res.startsWith("：") || res.startsWith(":")) res = res.substring(1).trim();
         } else {
-            // 情景二：網頁漏咗寫 Title，直接接編號問題（1. 2. 3. …）
-            // 由「經文／主旨／講題」呢類資訊行之後開始搜，避免誤中經文入面嘅數字（例如 徒28:1-16）
-            const afterMarkers = ["主旨", "經文", "証道主旨", "證道主旨", "講題", "證道主題", "証道主題"];
-            let searchFrom = 0;
-            for (let m of afterMarkers) {
-                let idx = text.indexOf(m);
-                if (idx !== -1) {
-                    let lineEnd = text.indexOf("\n", idx);
-                    if (lineEnd === -1) lineEnd = idx + m.length;
-                    if (lineEnd > searchFrom) searchFrom = lineEnd;
-                }
+            // 情景二：冇「小組問題」呢類標題 → 以編號 1. 2. 3. … 開頭嘅段落就係小組問題。
+            // 教會網頁格式：講題 → 經文 → （可能有其他內容／大綱）→ 小組問題，
+            // 所以如果有幾組編號（例如大綱 1-4 之後再有問題 1-5），揀「最後一組」由 1 開始嘅。
+            const startRe = /(^|\n)[ \t　]*[1１][\.\、\)）．]/g;
+            const secondRe = /\n[ \t　]*[2２][\.\、\)）．]/;
+            const starts = [];
+            let sm;
+            while ((sm = startRe.exec(text)) !== null) starts.push(sm.index + sm[1].length);
+            let chosen = -1;
+            for (let k = starts.length - 1; k >= 0; k--) {
+                if (secondRe.test(text.slice(starts[k]))) { chosen = starts[k]; break; }
             }
-            const numMatch = text.slice(searchFrom).match(/\n\s*1[\.、\)]\s*/);
-            if (numMatch) {
-                res = text.slice(searchFrom + numMatch.index).trim();
-            }
+            if (chosen === -1 && starts.length) chosen = starts[starts.length - 1];
+            if (chosen !== -1) res = text.slice(chosen).trim();
         }
 
         if (!res) return "（未能偵測問題，請檢查關鍵字或手動貼上）";
